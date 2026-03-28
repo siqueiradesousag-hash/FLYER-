@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GEAN CREATIVE STUDIO</title>
+  <meta name="description" content="Flyers, logomarcas e logos profissionais para eventos, shows e empresas. Pedido direto no WhatsApp." />
+  <style>
+    :root{
+      --bg:#03060b;
+      --bg2:#07111f;
+      --card:#09111d;
+      --line:rgba(255,255,255,.09);
+      --muted:#cbd5e1;
+      --text:#f8fafc;
+      --green:#22e58b;
+      --green2:#13c66f;
+      --cyan:#25d2ff;
+      --shadow:0 18px 45px rgba(0,0,0,.28);
+      --radius:28px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(37,210,255,.08), transparent 18%),
+        radial-gradient(circle at bottom left, rgba(34,229,139,.08), transparent 24%),
+        linear-gradient(180deg,#03060b,#02050a 40%,#02070d);
+    }
+    a{text-decoration:none;color:inherit}
+    img{max-width:100%;display:block}
+    .wrap{max-width:1240px;margin:0 auto;padding:0 16px}
+    .section{padding:20px 0}
+    .glass{
+      background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.025));
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      border-radius:var(--radius);
+    }
+
+    .hero{
+      padding:18px 0 14px;
+      overflow:hidden;
+      position:relative;
+    }
+    .hero-grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:18px;
+      align-items:center;
+    }
+    .hero-copy{
+      padding:22px 18px;
+      position:relative;
+      min-height:520px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .hero-copy::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(90deg, rgba(3,6,11,.92), rgba(3,6,11,.70) 42%, rgba(3,6,11,.22)),
+        url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1400&q=80') center/cover no-repeat;
+      z-index:0;
+    }
+    .hero-copy > *{position:relative;z-index:1}
+    .brand{
+      display:inline-block;
+      width:max-content;
+      background:#000;
+      padding:10px 18px;
+      border-radius:999px;
+      font-weight:900;
+      letter-spacing:.04em;
+      margin-bottom:16px;
+    }
+    h1{
+      margin:0 0 12px;
+      font-size:clamp(2.2rem,7vw,4.6rem);
+      line-height:0.98;
+      font-weight:900;
+      letter-spacing:-.03em;
+      max-width:760px;
+    }
+    .green{color:var(--green)}
+    .sub{
+      color:var(--muted);
+      font-size:1.02rem;
+      line-height:1.45;
+      max-width:760px;
+      margin:0 0 18px;
+    }
+    .mini-tags{
+      display:flex; gap:10px; flex-wrap:wrap; margin:0 0 20px;
+    }
+    .mini-tags span{
+      padding:12px 16px;
+      border-radius:999px;
+      font-weight:800;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.09);
+    }
+    .cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .cta{
+      padding:18px 24px;
+      border-radius:999px;
+      font-weight:900;
+      color:#03150d;
+      background:linear-gradient(135deg,var(--green),var(--green2));
+      box-shadow:0 0 28px rgba(34,229,139,.28);
+      animation:pulse 1.7s infinite;
+    }
+    .cta.secondary{
+      color:#fff;
+      background:rgba(255,255,255,.07);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow:none;
+      animation:none;
+    }
+    .counter{
+      margin-top:18px;
+      font-weight:900;
+      font-size:1.15rem;
+      color:#9cf5c8;
+    }
+    @keyframes pulse{
+      0%,100%{transform:scale(1)}
+      50%{transform:scale(1.05)}
+    }
+
+    .hero-phone{
+      padding:14px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:520px;
+      background:
+        radial-gradient(circle at 80% 20%, rgba(37,210,255,.12), transparent 22%),
+        radial-gradient(circle at 18% 80%, rgba(34,229,139,.12), transparent 24%),
+        linear-gradient(180deg,#08111d,#08111b);
+    }
+    .phone{
+      width:min(100%,380px);
+      padding:12px;
+      border-radius:38px;
+      background:linear-gradient(180deg,#111827,#0b1220);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow:0 22px 60px rgba(0,0,0,.40);
+    }
+    .phone-notch{
+      width:92px;height:8px;border-radius:999px;
+      background:rgba(255,255,255,.16);
+      margin:0 auto 12px;
+    }
+    .phone-screen{
+      border-radius:30px;
+      overflow:hidden;
+      height:620px;
+      position:relative;
+      background:#020617;
+    }
+    .phone-track{
+      display:flex;
+      width:300%;
+      height:100%;
+      animation:heroLoop 12s infinite;
+      will-change:transform;
+    }
+    @keyframes heroLoop{
+      0%,29%{transform:translateX(0)}
+      33%,62%{transform:translateX(-33.3333%)}
+      66%,95%{transform:translateX(-66.6666%)}
+      100%{transform:translateX(0)}
+    }
+    .phone-slide{
+      width:100%;
+      flex:0 0 100%;
+      position:relative;
+      background-size:cover;
+      background-position:center;
+    }
+    .phone-slide::before{
+      content:"";
+      position:absolute; inset:0;
+      background:linear-gradient(to top, rgba(0,0,0,.50), rgba(0,0,0,.08));
+    }
+    .phone-badge,.card-badge{
+      position:absolute; top:16px; left:16px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:.78rem;
+      font-weight:900;
+      background:rgba(0,0,0,.45);
+      backdrop-filter:blur(6px);
+      z-index:1;
+    }
+    .phone-info{
+      position:absolute; left:18px; right:18px; bottom:18px; z-index:1;
+    }
+    .phone-info h3{
+      margin:0; font-size:2.25rem; line-height:.97; font-weight:900;
+    }
+    .phone-info span{
+      display:inline-block; margin-top:10px;
+      background:rgba(0,0,0,.35); padding:10px 16px; border-radius:999px; font-weight:800;
+    }
+    .dots{display:flex;justify-content:center;gap:8px;margin-top:12px}
+    .dots span{
+      width:10px;height:10px;border-radius:999px;background:rgba(255,255,255,.22);
+    }
+    .dots span:first-child{background:var(--green)}
+
+    .promo{
+      margin-top:10px;
+      padding:20px 18px;
+      text-align:center;
+      color:#02140d;
+      font-size:clamp(1.3rem,4.5vw,2.3rem);
+      font-weight:900;
+      background:linear-gradient(90deg,var(--green),var(--cyan));
+    }
+
+    .logos-grid{
+      padding:22px 18px 26px;
+    }
+    .section-head{
+      display:flex;justify-content:space-between;align-items:end;gap:14px;flex-wrap:wrap;margin-bottom:14px;
+    }
+    .section-head h2{
+      margin:0;font-size:clamp(1.8rem,5vw,3rem);line-height:1.02;font-weight:900;
+    }
+    .section-head p{
+      margin:0;color:var(--muted);max-width:700px;line-height:1.5
+    }
+    .logo-slider, .cat-slider{
+      display:flex; gap:14px;
+      overflow-x:auto; overflow-y:hidden;
+      padding:4px 2px 6px;
+      scrollbar-width:none;
+      -webkit-overflow-scrolling:touch;
+      touch-action:pan-x;
+      scroll-snap-type:x mandatory;
+      scroll-padding-inline:2px;
+      overscroll-behavior-x:contain;
+    }
+    .logo-slider::-webkit-scrollbar, .cat-slider::-webkit-scrollbar{display:none}
+    .logo-card{
+      flex:0 0 255px; min-width:255px;
+      border-radius:26px; overflow:hidden;
+      border:1px solid var(--line);
+      background:#0b1220;
+      box-shadow:var(--shadow);
+      transform-origin:center;
+      scroll-snap-align:start;
+      scroll-snap-stop:always;
+    }
+    .logo-card:nth-child(1){transform:rotate(-2deg)}
+    .logo-card:nth-child(2){transform:rotate(1.5deg)}
+    .logo-card:nth-child(3){transform:rotate(-1deg)}
+    .logo-top{
+      height:290px; position:relative;
+      background-size:cover; background-position:center;
+    }
+    .logo-top::before{
+      content:"";position:absolute;inset:0;
+      background:linear-gradient(to top, rgba(0,0,0,.48), rgba(0,0,0,.10));
+    }
+    .logo-bottom{
+      position:absolute;left:16px;right:16px;bottom:18px;z-index:1;
+    }
+    .logo-bottom h3{margin:0;font-size:1.92rem;line-height:.98;font-weight:900}
+    .pill{
+      display:inline-block;margin-top:10px;padding:10px 16px;border-radius:999px;font-weight:800;background:rgba(0,0,0,.35)
+    }
+
+    .stats{
+      display:grid;grid-template-columns:1fr;gap:14px;margin-top:16px;
+    }
+    .stat{
+      padding:26px 18px;text-align:center
+    }
+    .stat strong{
+      display:block;font-size:clamp(2rem,7vw,3rem);color:var(--green);margin-bottom:6px
+    }
+    .stat span{font-size:1rem;color:#e5e7eb}
+
+    .cat-title{
+      margin:0 0 6px;
+      font-size:clamp(1.7rem,5vw,2.5rem);
+      font-weight:900;
+      text-align:center;
+    }
+    .cat-sub{
+      text-align:center;color:var(--muted);margin:0 0 16px;
+    }
+
+    .card{
+      flex:0 0 88%; min-width:88%;
+      border-radius:28px; overflow:hidden;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.025));
+      box-shadow:var(--shadow);
+      scroll-snap-align:start;
+      scroll-snap-stop:always;
+    }
+    .card-cover{
+      height:280px; position:relative;
+      background-size:cover; background-position:center;
+    }
+    .card-cover::before{
+      content:"";position:absolute;inset:0;
+      background:linear-gradient(to top, rgba(0,0,0,.52), rgba(0,0,0,.12));
+    }
+    .card-info{
+      position:absolute;left:16px;right:16px;bottom:16px;z-index:1;
+      display:flex;justify-content:space-between;align-items:end;gap:12px;
+    }
+    .card-info h3{
+      margin:0;font-size:2rem;line-height:.96;font-weight:900;max-width:60%;
+    }
+    .price-tag{
+      display:inline-block;background:rgba(0,0,0,.36);backdrop-filter:blur(6px);
+      padding:12px 16px;border-radius:16px;color:var(--green);font-weight:900;font-size:1.35rem;
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .card-body{
+      padding:18px;
+    }
+    .label{
+      display:inline-block;padding:8px 12px;border-radius:999px;font-size:.8rem;font-weight:900;
+      background:rgba(34,229,139,.12);color:#8ff2bf;margin-bottom:10px;
+      border:1px solid rgba(34,229,139,.12);
+    }
+    .card-body h4{
+      margin:0 0 8px;font-size:1.45rem;line-height:1.1;
+    }
+    .card-body p{
+      margin:0 0 16px;color:var(--muted);line-height:1.5;
+    }
+    .btn-row{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{
+      flex:1; min-width:130px; cursor:pointer;
+      padding:14px 16px;border-radius:16px;border:none;font-weight:900;
+    }
+    .btn-main{
+      background:linear-gradient(135deg,var(--green),var(--green2)); color:#03150d;
+    }
+    .btn-alt{
+      color:#fff;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);
+    }
+    .detail-panel{
+      display:none;margin-top:12px;padding:13px;border-radius:16px;
+      background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#dbeafe;line-height:1.55
+    }
+    .detail-panel.open{display:block}
+
+    .vip{
+      padding:24px 18px;
+      background:linear-gradient(135deg,var(--green),#15b76a);
+      color:#03150d;
+    }
+    .vip-badge{
+      display:inline-block;background:rgba(255,255,255,.82);padding:8px 12px;border-radius:999px;font-size:.8rem;font-weight:900;margin-bottom:10px;
+    }
+    .vip h3{margin:0 0 8px;font-size:2rem}
+    .vip-price{font-size:2.2rem;font-weight:900;margin-bottom:12px}
+    .vip ul{margin:0;padding-left:20px;line-height:1.7;font-weight:800}
+
+    .form-box{
+      padding:18px;
+    }
+    .form-box h2{
+      margin:0 0 8px;font-size:clamp(1.8rem,5vw,2.7rem);font-weight:900;
+    }
+    .form-box p{margin:0 0 16px;color:var(--muted)}
+    .grid{display:grid;gap:12px}
+    .grid.two{grid-template-columns:1fr}
+    input, textarea, select{
+      width:100%;background:#0b1220;color:#fff;
+      border:1px solid rgba(255,255,255,.08);
+      padding:15px 14px;border-radius:16px;font-size:1rem;outline:none;
+    }
+    textarea{min-height:140px;resize:vertical}
+    .summary{
+      margin-top:12px;padding:14px;border-radius:16px;background:rgba(34,229,139,.08);border:1px solid rgba(34,229,139,.15);color:#dbffea;line-height:1.6;
+    }
+
+    .testimonials{
+      display:grid;grid-template-columns:1fr;gap:14px;
+    }
+    .t-card{padding:18px}
+    .stars{color:#ffd74a;font-size:1.25rem;letter-spacing:2px;margin-bottom:8px}
+    .t-card strong{display:block;font-size:1.1rem;margin-bottom:8px}
+    .t-card p{margin:0;color:var(--muted);line-height:1.55}
+
+    .footer{
+      padding:26px 0 60px;text-align:center;color:#94a3b8
+    }
+
+    @media (min-width:760px){
+      .hero-grid{grid-template-columns:1.02fr .98fr}
+      .stats{grid-template-columns:repeat(4,1fr)}
+      .card{flex-basis:calc(50% - 7px);min-width:calc(50% - 7px)}
+      .grid.two{grid-template-columns:1fr 1fr}
+      .testimonials{grid-template-columns:repeat(3,1fr)}
+    }
+    @media (min-width:1080px){
+      .card{flex-basis:calc(33.333% - 10px);min-width:calc(33.333% - 10px)}
+      .hero-copy{min-height:620px;padding:34px 30px}
+      .hero-phone{min-height:620px}
+      .promo{font-size:2.3rem}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="hero-copy glass">
+          <div class="brand">GEAN CREATIVE STUDIO</div>
+          <h1>Flyer profissional <span class="green">que faz seu</span> negócio vender mais</h1>
+          <p class="sub">Flyers, logomarcas e logos profissionais para eventos, shows e empresas. Estrutura premium, pedido direto no WhatsApp, preços por categoria e apresentação no nível de site grande.</p>
+          <div class="mini-tags">
+            <span>Shows</span>
+            <span>Empresas</span>
+            <span>Eventos</span>
+            <span>Posts</span>
+          </div>
+          <div class="cta-row">
+            <a href="#pedido" class="cta">CRIAR MEU FLYER AGORA</a>
+            <a href="#categorias" class="cta secondary">VER MODELOS</a>
+          </div>
+          <div class="counter" id="contador">PROMOÇÃO TERMINA EM: --:--:--</div>
+        </div>
+
+        <div class="hero-phone glass">
+          <div class="phone">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <div class="phone-track">
+                <div class="phone-slide" style="background-image:url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=80')">
+                  <div class="phone-badge">MODELO FESTA</div>
+                  <div class="phone-info">
+                    <h3>SUPER<br>PARTY</h3>
+                    <span>Visual evento</span>
+                  </div>
+                </div>
+                <div class="phone-slide" style="background-image:url('https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1000&q=80')">
+                  <div class="phone-badge">MODELO SHOW</div>
+                  <div class="phone-info">
+                    <h3>NOITE DO<br>FORRÓ</h3>
+                    <span>Visual musical</span>
+                  </div>
+                </div>
+                <div class="phone-slide" style="background-image:url('https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1000&q=80')">
+                  <div class="phone-badge">MODELO EMPRESA</div>
+                  <div class="phone-info">
+                    <h3>OFERTA DA<br>SEMANA</h3>
+                    <span>Visual comercial</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="dots"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="promo glass">🔥 PROMOÇÃO DA SEMANA: escolha hoje e receba atendimento mais rápido</div>
+    </section>
+
+    <section class="section">
+      <div class="glass logos-grid">
+        <div class="section-head">
+          <div>
+            <h2>Modelos profissionais com <span class="green">imagem real</span></h2>
+          </div>
+          <p>Vitrine com logos e flyers demonstrativos para deixar a abertura do site mais profissional, mantendo a estrutura oficial e um visual avançado.</p>
+        </div>
+
+        <div class="logo-slider">
+          <article class="logo-card">
+            <div class="logo-top" style="background-image:url('https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=900&q=80')">
+              <div class="card-badge">LOGO SHOW</div>
+              <div class="logo-bottom">
+                <h3>NOITE DO<br>FORRÓ</h3>
+                <div class="pill">Visual musical</div>
+              </div>
+            </div>
+          </article>
+
+          <article class="logo-card">
+            <div class="logo-top" style="background-image:url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=900&q=80')">
+              <div class="card-badge">LOGO EVENTO</div>
+              <div class="logo-bottom">
+                <h3>SUPER<br>PARTY</h3>
+                <div class="pill">Visual evento</div>
+              </div>
+            </div>
+          </article>
+
+          <article class="logo-card">
+            <div class="logo-top" style="background-image:url('https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=900&q=80')">
+              <div class="card-badge">LOGO EMPRESA</div>
+              <div class="logo-bottom">
+                <h3>OFERTA DA<br>SEMANA</h3>
+                <div class="pill">Visual comercial</div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="stats">
+          <div class="stat glass"><strong>12</strong><span>Modelos</span></div>
+          <div class="stat glass"><strong>4</strong><span>Categorias</span></div>
+          <div class="stat glass"><strong>R$ 14,90</strong><span>Preço inicial</span></div>
+          <div class="stat glass"><strong>Direct</strong><span>WhatsApp</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="categorias">
+      <h2 class="cat-title">Escolha sua categoria</h2>
+      <p class="cat-sub">Agora cada categoria tem sua própria capa de demonstração, preço visível e descrição completa.</p>
+
+      <div class="cat-slider" id="catSlider">
+        <article class="card" data-categoria="Flyer Simples" data-modelo="Flyer Show Simples" data-valor="R$ 19,90">
+          <div class="card-cover" style="background-image:url('https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80')">
+            <div class="card-badge">GEAN FLYER PRÓ</div>
+            <div class="card-info">
+              <h3>SHOW<br>SIMPLES</h3>
+              <div class="price-tag">R$ 19,90</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="label">Entrada</div>
+            <h4>Flyer Show Simples</h4>
+            <p>Modelo leve e direto para divulgação rápida de show, bar, festa pequena, anúncio de última hora ou evento local.</p>
+            <div class="btn-row">
+              <button class="btn btn-main escolher">ESCOLHER</button>
+              <button class="btn btn-alt detail-btn" aria-expanded="false">VER DETALHES</button>
+            </div>
+            <div class="detail-panel">Inclui capa demonstrativa, espaço para nome do evento, data, local, atrações, contato e chamada principal. É a opção ideal para quem quer divulgação rápida com preço acessível.</div>
+          </div>
+        </article>
+
+        <article class="card" data-categoria="Flyer Profissional" data-modelo="Flyer Evento Profissional" data-valor="R$ 29,90">
+          <div class="card-cover" style="background-image:url('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80')">
+            <div class="card-badge">GEAN FLYER PRÓ</div>
+            <div class="card-info">
+              <h3>SHOW<br>PRO</h3>
+              <div class="price-tag">R$ 29,90</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="label">Mais vendido</div>
+            <h4>Flyer Profissional</h4>
+            <p>Mais destaque para artista, data, atrações e patrocinadores. Passa imagem de evento grande e mais profissional.</p>
+            <div class="btn-row">
+              <button class="btn btn-main escolher">ESCOLHER</button>
+              <button class="btn btn-alt detail-btn" aria-expanded="false">VER DETALHES</button>
+            </div>
+            <div class="detail-panel">Modelo com maior hierarquia visual, melhor equilíbrio de texto, espaço para fotos, patrocinadores e chamada principal. Indicado para quem quer impressionar mais e vender melhor.</div>
+          </div>
+        </article>
+
+        <article class="card" data-categoria="Flyer Premium" data-modelo="Flyer Premium Impacto" data-valor="R$ 49,90">
+          <div class="card-cover" style="background-image:url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80')">
+            <div class="card-badge">GEAN FLYER PRÓ</div>
+            <div class="card-info">
+              <h3>PREMIUM<br>VIP</h3>
+              <div class="price-tag">R$ 49,90</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="label">Alta conversão</div>
+            <h4>Flyer Premium</h4>
+            <p>Visual avançado para eventos maiores, campanhas mais fortes e apresentação de nível premium para feed, story e status.</p>
+            <div class="btn-row">
+              <button class="btn btn-main escolher">ESCOLHER</button>
+              <button class="btn btn-alt detail-btn" aria-expanded="false">VER DETALHES</button>
+            </div>
+            <div class="detail-panel">Aqui entra acabamento mais forte, visual mais chamativo, composição melhor trabalhada e sensação de empresa grande. Ótimo para promoções pesadas e grandes eventos.</div>
+          </div>
+        </article>
+
+        <article class="card" data-categoria="Empresa" data-modelo="Promo Empresa Comercial" data-valor="R$ 24,90">
+          <div class="card-cover" style="background-image:url('https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1200&q=80')">
+            <div class="card-badge">GEAN FLYER PRÓ</div>
+            <div class="card-info">
+              <h3>EMPRESA<br>OFERTA</h3>
+              <div class="price-tag">R$ 24,90</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="label">Comercial</div>
+            <h4>Flyer Empresa</h4>
+            <p>Perfeito para loja, delivery, promoção da semana, panfleto digital, post comercial e divulgação de serviços.</p>
+            <div class="btn-row">
+              <button class="btn btn-main escolher">ESCOLHER</button>
+              <button class="btn btn-alt detail-btn" aria-expanded="false">VER DETALHES</button>
+            </div>
+            <div class="detail-panel">Modelo voltado para empresas, com foco em preço, chamada de oferta, dados de contato e elementos mais claros para venda imediata e divulgação de serviços.</div>
+          </div>
+        </article>
+
+        <article class="card" data-categoria="Logomarca" data-modelo="Logo Marca Profissional" data-valor="R$ 39,90">
+          <div class="card-cover" style="background-image:url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80')">
+            <div class="card-badge">GEAN FLYER PRÓ</div>
+            <div class="card-info">
+              <h3>LOGO<br>PRO</h3>
+              <div class="price-tag">R$ 39,90</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="label">Marca forte</div>
+            <h4>Logomarca Profissional</h4>
+            <p>Criação de logo e identidade visual para bares, lojas, eventos, produtores e empresas que querem parecer maiores.</p>
+            <div class="btn-row">
+              <button class="btn btn-main escolher">ESCOLHER</button>
+              <button class="btn btn-alt detail-btn" aria-expanded="false">VER DETALHES</button>
+            </div>
+            <div class="detail-panel">Logomarca voltada para posicionar seu negócio com mais credibilidade, modernidade e reconhecimento visual. Ótimo para clientes VIP e projetos que precisam de presença forte.</div>
+          </div>
+        </article>
+
+        <article class="card" data-categoria="Panfleto Profissional" data-modelo="Panfleto Digital Premium" data-valor="R$ 34,90">
+          <div class="card-cover" style="background-image:url('https://images.unsplash.com/photo-1515169067868-5387ec356754?auto=format&fit=crop&w=1200&q=80')">
+            <div class="card-badge">GEAN FLYER PRÓ</div>
+            <div class="card-info">
+              <h3>PANFLETO<br>DIGITAL</h3>
+              <div class="price-tag">R$ 34,90</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="label">Divulgação forte</div>
+            <h4>Panfleto Profissional</h4>
+            <p>Formato ideal para promoções, mercados, deliveries, lanchonetes, assistência técnica e campanhas com bastante informação.</p>
+            <div class="btn-row">
+              <button class="btn btn-main escolher">ESCOLHER</button>
+              <button class="btn btn-alt detail-btn" aria-expanded="false">VER DETALHES</button>
+            </div>
+            <div class="detail-panel">Pensado para comunicação mais completa, com área para fotos, preços, promoções, WhatsApp, endereço e descrição do serviço. Excelente para negócios do dia a dia.</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="vip glass">
+        <div class="vip-badge">CLIENTE VIP</div>
+        <h3>Plano VIP Mensal</h3>
+        <div class="vip-price">R$ 197/mês</div>
+        <ul>
+          <li>08 flyers profissionais por mês</li>
+          <li>01 logomarca por mês</li>
+          <li>Atendimento prioritário no WhatsApp</li>
+          <li>Entrega rápida</li>
+          <li>Ajustes simples inclusos</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="pedido">
+      <div class="glass form-box">
+        <h2>Finalize seu pedido</h2>
+        <p>Preencha tudo antes de enviar. Categoria, modelo e valor são preenchidos automaticamente ao escolher um card.</p>
+
+        <div class="grid two">
+          <input id="nome" placeholder="Seu nome" />
+          <input id="negocio" placeholder="Nome do negócio / evento" />
+        </div>
+
+        <div class="grid two" style="margin-top:12px">
+          <input id="cidade" placeholder="Cidade / Bairro" />
+          <input id="instagram" placeholder="Instagram / WhatsApp de contato" />
+        </div>
+
+        <div class="grid two" style="margin-top:12px">
+          <input id="categoria" placeholder="Categoria escolhida" readonly />
+          <input id="modelo" placeholder="Modelo escolhido" readonly />
+        </div>
+
+        <div class="grid two" style="margin-top:12px">
+          <input id="valor" placeholder="Valor" readonly />
+          <select id="prazo">
+            <option value="">Prazo desejado</option>
+            <option>Urgente</option>
+            <option>Hoje</option>
+            <option>24 horas</option>
+            <option>48 horas</option>
+          </select>
+        </div>
+
+        <div style="margin-top:12px">
+          <textarea id="descricao" placeholder="Descreva sua arte: texto, cores, fotos, atração, promoções, data, local, estilo e tudo que precisa."></textarea>
+        </div>
+
+        <div class="summary" id="resumo">Nenhum modelo escolhido ainda.</div>
+
+        <div class="btn-row" style="margin-top:14px">
+          <button class="btn btn-main" id="enviar">ENVIAR PEDIDO NO WHATSAPP</button>
+          <button class="btn btn-alt" id="copiarPix">COPIAR PIX</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head" style="margin-bottom:12px">
+        <div><h2 style="margin:0;font-size:clamp(1.8rem,5vw,2.8rem)">Depoimentos</h2></div>
+      </div>
+      <div class="testimonials">
+        <div class="glass t-card">
+          <div class="stars">★★★★★</div>
+          <strong>Loja Real Mix</strong>
+          <p>Atendimento rápido e arte muito profissional. Ficou com cara de empresa grande.</p>
+        </div>
+        <div class="glass t-card">
+          <div class="stars">★★★★★</div>
+          <strong>Studio Black</strong>
+          <p>Gostei da praticidade de escolher o modelo e já enviar tudo certo pelo WhatsApp.</p>
+        </div>
+        <div class="glass t-card">
+          <div class="stars">★★★★★</div>
+          <strong>Estilo VIP</strong>
+          <p>Os modelos ficaram fortes, as capas chamam atenção e o site ficou bonito no celular.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      GEAN CREATIVE STUDIO • WhatsApp: (11) 94217-4862 • Pix: 11942174862
+    </div>
+  </div>
+
+  <script>
+    // contador diário
+    function atualizarContador() {
+      const agora = new Date();
+      const fim = new Date();
+      fim.setHours(23, 59, 59, 999);
+      const diff = fim - agora;
+      const h = Math.floor(diff / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((diff % (1000 * 60)) / 1000);
+      const txt = 'PROMOÇÃO TERMINA EM: ' +
+        String(h).padStart(2,'0') + ':' +
+        String(m).padStart(2,'0') + ':' +
+        String(s).padStart(2,'0');
+      document.getElementById('contador').textContent = txt;
+    }
+    atualizarContador();
+    setInterval(atualizarContador, 1000);
+
+    // detalhes
+    document.querySelectorAll('.detail-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const panel = btn.closest('.card-body').querySelector('.detail-panel');
+        const opened = panel.classList.contains('open');
+        document.querySelectorAll('.detail-panel.open').forEach(p => p.classList.remove('open'));
+        document.querySelectorAll('.detail-btn').forEach(b => b.setAttribute('aria-expanded','false'));
+        if (!opened) {
+          panel.classList.add('open');
+          btn.setAttribute('aria-expanded','true');
+        }
+      });
+    });
+
+    // escolha
+    const categoriaInput = document.getElementById('categoria');
+    const modeloInput = document.getElementById('modelo');
+    const valorInput = document.getElementById('valor');
+    const resumo = document.getElementById('resumo');
+
+    function atualizarResumo() {
+      resumo.innerHTML =
+        '<strong>Resumo do pedido:</strong><br>' +
+        'Categoria: ' + (categoriaInput.value || '-') + '<br>' +
+        'Modelo: ' + (modeloInput.value || '-') + '<br>' +
+        'Valor: ' + (valorInput.value || '-');
+    }
+    atualizarResumo();
+
+    document.querySelectorAll('.escolher').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const card = btn.closest('.card');
+        categoriaInput.value = card.dataset.categoria;
+        modeloInput.value = card.dataset.modelo;
+        valorInput.value = card.dataset.valor;
+        atualizarResumo();
+        document.getElementById('pedido').scrollIntoView({behavior:'smooth', block:'start'});
+      });
+    });
+
+    // whatsapp
+    document.getElementById('enviar').addEventListener('click', () => {
+      const nome = document.getElementById('nome').value.trim();
+      const negocio = document.getElementById('negocio').value.trim();
+      const cidade = document.getElementById('cidade').value.trim();
+      const instagram = document.getElementById('instagram').value.trim();
+      const prazo = document.getElementById('prazo').value.trim();
+      const descricao = document.getElementById('descricao').value.trim();
+      const categoria = categoriaInput.value.trim();
+      const modelo = modeloInput.value.trim();
+      const valor = valorInput.value.trim();
+
+      if (!nome || !negocio || !cidade || !instagram || !prazo || !descricao || !categoria || !modelo || !valor) {
+        alert('Preencha todos os campos antes de enviar o pedido.');
+        return;
+      }
+
+      const msg =
+`Olá, quero fazer um pedido.
+
+Nome: ${nome}
+Negócio/Evento: ${negocio}
+Cidade/Bairro: ${cidade}
+Instagram/Contato: ${instagram}
+Categoria: ${categoria}
+Modelo: ${modelo}
+Valor: ${valor}
+Prazo: ${prazo}
+
+Descrição da arte:
+${descricao}
+
+Pix para pagamento: 11942174862`;
+
+      window.open('https://wa.me/5511942174862?text=' + encodeURIComponent(msg), '_blank');
+    });
+
+    document.getElementById('copiarPix').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText('11942174862');
+        alert('Pix copiado: 11942174862');
+      } catch (e) {
+        alert('Pix: 11942174862');
+      }
+    });
+
+    // snap rápido por categoria
+    const sliders = document.querySelectorAll('.cat-slider, .logo-slider');
+    sliders.forEach(slider => {
+      let isDown = false;
+      let startX = 0;
+      let startScroll = 0;
+
+      function getStep() {
+        const first = slider.children[0];
+        if (!first) return slider.clientWidth;
+        const gap = parseFloat(getComputedStyle(slider).gap || 14);
+        return first.getBoundingClientRect().width + gap;
+      }
+
+      function snap() {
+        const step = getStep();
+        const target = Math.round(slider.scrollLeft / step) * step;
+        slider.scrollTo({left: target, behavior: 'smooth'});
+      }
+
+      slider.addEventListener('pointerdown', e => {
+        isDown = true;
+        startX = e.clientX;
+        startScroll = slider.scrollLeft;
+        slider.style.scrollSnapType = 'none';
+        slider.setPointerCapture(e.pointerId);
+      });
+
+      slider.addEventListener('pointermove', e => {
+        if (!isDown) return;
+        const dx = e.clientX - startX;
+        slider.scrollLeft = startScroll - dx;
+      });
+
+      function endDrag() {
+        if (!isDown) return;
+        isDown = false;
+        slider.style.scrollSnapType = 'x mandatory';
+        snap();
+      }
+
+      slider.addEventListener('pointerup', endDrag);
+      slider.addEventListener('pointercancel', endDrag);
+      slider.addEventListener('lostpointercapture', endDrag);
+
+      let t;
+      slider.addEventListener('scroll', () => {
+        if (isDown) return;
+        clearTimeout(t);
+        t = setTimeout(snap, 70);
+      });
+    });
+  </script>
+</body>
+</html>
