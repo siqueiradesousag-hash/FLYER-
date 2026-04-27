@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "MONEY STORM BR"
+version = "1.0.0"
+id = "artifacts/money-storm-br"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18645
+
+[services.development]
+run = "pnpm --filter @workspace/money-storm-br run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/money-storm-br", "run", "build" ]
+publicDir = "artifacts/money-storm-br/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18645"
+BASE_PATH = "/"

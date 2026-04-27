@@ -1,0 +1,22 @@
+{
+  "name": "MONEY STORM BR",
+  "short_name": "MoneyStorm",
+  "description": "Ganhe dinheiro assistindo vídeos e receba via PIX!",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#FFD700",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://i.postimg.cc/0QfjxCdj/cee3592e-82fb-4b07-b0a0-dc23d690dc3d.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://i.postimg.cc/0QfjxCdj/cee3592e-82fb-4b07-b0a0-dc23d690dc3d.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
