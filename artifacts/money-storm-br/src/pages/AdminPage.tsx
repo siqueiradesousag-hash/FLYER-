@@ -34,7 +34,7 @@ export default function AdminPage() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("dashboard");
 
-  if (!userData?.isAdmin) {
+  if (!userData?.isAdmin && userData?.role !== "admin") {
     return (
       <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center gap-4">
         <p className="text-white text-lg font-semibold">Acesso negado</p>

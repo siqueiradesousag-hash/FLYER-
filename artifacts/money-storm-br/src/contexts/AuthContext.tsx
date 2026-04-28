@@ -6,10 +6,12 @@ import {
   signOut,
   onAuthStateChanged,
 } from "firebase/auth";
-import { ref, set, get, serverTimestamp } from "firebase/database";
+import { ref, set, get, update } from "firebase/database";
 import { auth, db } from "@/lib/firebase";
 
-interface UserData {
+const ADMIN_EMAIL = "moneystormbr@gmail.com";
+
+export interface UserData {
   uid: string;
   email: string;
   balance: number;
@@ -17,6 +19,7 @@ interface UserData {
   tasksToday: number;
   tasksTotal: number;
   isAdmin: boolean;
+  role?: string;
   isVip: boolean;
   isBanned: boolean;
   isSuspect: boolean;
@@ -30,7 +33,7 @@ interface AuthContextType {
   userData: UserData | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, bonusCadastro?: number) => Promise<void>;
   logout: () => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
@@ -42,23 +45,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserData = async (uid: string) => {
+  const fetchUserData = async (firebaseUser: User) => {
+    const uid = firebaseUser.uid;
+    const email = firebaseUser.email ?? "";
     const userRef = ref(db, `users/${uid}`);
     const snap = await get(userRef);
+    const isAdminByEmail = email === ADMIN_EMAIL;
+
     if (snap.exists()) {
-      setUserData({ uid, ...snap.val() } as UserData);
+      const raw = snap.val();
+      const merged: UserData = {
+        uid,
+        email,
+        balance: raw.balance ?? 0,
+        totalEarned: raw.totalEarned ?? 0,
+        tasksToday: raw.tasksToday ?? 0,
+        tasksTotal: raw.tasksTotal ?? 0,
+        isAdmin: raw.isAdmin === true || raw.role === "admin" || isAdminByEmail,
+        role: raw.role,
+        isVip: raw.isVip ?? false,
+        isBanned: raw.isBanned ?? false,
+        isSuspect: raw.isSuspect ?? false,
+        fraudScore: raw.fraudScore ?? 0,
+        createdAt: raw.createdAt ?? Date.now(),
+        pixKey: raw.pixKey ?? "",
+      };
+      // auto-grant admin flag in DB for moneystormbr@gmail.com
+      if (isAdminByEmail && !raw.isAdmin) {
+        await update(userRef, { isAdmin: true, role: "admin" });
+      }
+      setUserData(merged);
     }
   };
 
   const refreshUserData = async () => {
-    if (user) await fetchUserData(user.uid);
+    if (user) await fetchUserData(user);
   };
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
-        await fetchUserData(firebaseUser.uid);
+        await fetchUserData(firebaseUser);
       } else {
         setUserData(null);
       }
@@ -71,17 +99,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const register = async (email: string, password: string) => {
+  const register = async (email: string, password: string, bonusCadastro = 0.25) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     const uid = cred.user.uid;
     const now = Date.now();
+    const isAdminByEmail = email === ADMIN_EMAIL;
     await set(ref(db, `users/${uid}`), {
       email,
-      balance: 0.25,
+      balance: bonusCadastro,
       totalEarned: 0,
       tasksToday: 0,
       tasksTotal: 0,
-      isAdmin: false,
+      isAdmin: isAdminByEmail,
+      role: isAdminByEmail ? "admin" : "user",
       isVip: false,
       isBanned: false,
       isSuspect: false,
@@ -91,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     await set(ref(db, `transactions/${uid}/${now}`), {
       type: "bonus",
-      amount: 0.25,
+      amount: bonusCadastro,
       description: "Bônus de cadastro",
       status: "paid",
       timestamp: now,

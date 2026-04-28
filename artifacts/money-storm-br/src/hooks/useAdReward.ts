@@ -1,21 +1,20 @@
 import { useState, useRef, useCallback } from "react";
-import { ref as dbRef, runTransaction, push, serverTimestamp, get, set } from "firebase/database";
+import { ref as dbRef, runTransaction, push, get, set } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppConfig } from "@/contexts/AppConfigContext";
 
-type AdState = "idle" | "watching" | "cooldown";
+export type AdState = "idle" | "watching" | "can_close" | "cooldown";
 
 export function useAdReward() {
   const { user, refreshUserData } = useAuth();
   const { config } = useAppConfig();
   const [adState, setAdState] = useState<AdState>("idle");
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const [adTimer, setAdTimer] = useState(0);
-  const [adWindowRef, setAdWindowRef] = useState<Window | null>(null);
-  const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const adTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const adWindowCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [timerRemaining, setTimerRemaining] = useState(0);
+  const adWindowRef = useRef<Window | null>(null);
+  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const adTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const getCooldownDuration = useCallback(() => {
     const options = [config.cooldown1, config.cooldown2, config.cooldown3];
@@ -25,11 +24,11 @@ export function useAdReward() {
   const startCooldown = useCallback((duration: number) => {
     setCooldownRemaining(duration);
     setAdState("cooldown");
-    if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
-    cooldownTimerRef.current = setInterval(() => {
+    if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+    cooldownIntervalRef.current = setInterval(() => {
       setCooldownRemaining((prev) => {
         if (prev <= 1) {
-          clearInterval(cooldownTimerRef.current!);
+          clearInterval(cooldownIntervalRef.current!);
           setAdState("idle");
           return 0;
         }
@@ -48,13 +47,11 @@ export function useAdReward() {
     if (lockSnap.exists()) {
       const lockData = lockSnap.val();
       if (now - lockData.ts < 2000) {
-        console.warn("Lock ativo - tentativa de fraude detectada");
         const fraudRef = dbRef(db, `fraudLogs/${uid}/${now}`);
         await set(fraudRef, { type: "double_credit", ts: now });
         return;
       }
     }
-
     await set(lockRef, { ts: now });
 
     const balanceRef = dbRef(db, `users/${uid}/balance`);
@@ -73,10 +70,9 @@ export function useAdReward() {
       return next;
     });
 
-    await runTransaction(totalRef, (current) => {
-      return Math.round(((current ?? 0) + config.recompensaVideo) * 100) / 100;
-    });
-
+    await runTransaction(totalRef, (current) =>
+      Math.round(((current ?? 0) + config.recompensaVideo) * 100) / 100
+    );
     await runTransaction(tasksTodayRef, (current) => (current ?? 0) + 1);
     await runTransaction(tasksTotalRef, (current) => (current ?? 0) + 1);
 
@@ -95,31 +91,40 @@ export function useAdReward() {
   const watchAd = useCallback(() => {
     if (!config.buttonActive || adState !== "idle" || !user) return;
 
-    const adUrl = config.adLink || config.monetagZone;
+    const adUrl = config.adLink || config.monetagZone || "https://example.com";
     const win = window.open(adUrl, "_blank");
-    setAdWindowRef(win);
+    adWindowRef.current = win;
     setAdState("watching");
-    setAdTimer(config.adTimer);
 
-    let timerCount = config.adTimer;
-    adTimerRef.current = setInterval(() => {
-      timerCount -= 1;
-      setAdTimer(timerCount);
-      if (timerCount <= 0) {
-        clearInterval(adTimerRef.current!);
+    const totalTime = config.adTimer > 0 ? config.adTimer : 15;
+    setTimerRemaining(totalTime);
+
+    let count = totalTime;
+    if (adTimerIntervalRef.current) clearInterval(adTimerIntervalRef.current);
+    adTimerIntervalRef.current = setInterval(() => {
+      count -= 1;
+      setTimerRemaining(count);
+      if (count <= 0) {
+        clearInterval(adTimerIntervalRef.current!);
+        setAdState("can_close");
       }
     }, 1000);
+  }, [adState, user, config]);
 
-    adWindowCheckRef.current = setInterval(async () => {
-      if (win && win.closed) {
-        clearInterval(adWindowCheckRef.current!);
-        clearInterval(adTimerRef.current!);
-        await creditReward();
-        const cooldown = getCooldownDuration();
-        startCooldown(cooldown);
+  const completeWatch = useCallback(async () => {
+    if (adState !== "can_close") return;
+    // try to close the ad window
+    try {
+      if (adWindowRef.current && !adWindowRef.current.closed) {
+        adWindowRef.current.close();
       }
-    }, 500);
-  }, [adState, user, config, creditReward, getCooldownDuration, startCooldown]);
+    } catch { /* cross-origin, ignore */ }
+    adWindowRef.current = null;
 
-  return { adState, cooldownRemaining, adTimer, watchAd };
+    await creditReward();
+    const cooldown = getCooldownDuration();
+    startCooldown(cooldown);
+  }, [adState, creditReward, getCooldownDuration, startCooldown]);
+
+  return { adState, cooldownRemaining, timerRemaining, watchAd, completeWatch };
 }

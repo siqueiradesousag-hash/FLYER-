@@ -4,13 +4,23 @@ import { db } from "@/lib/firebase";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import { formatCurrency } from "@/lib/utils";
-import { Trophy, Medal } from "lucide-react";
+import { Trophy } from "lucide-react";
 
 interface RankUser {
   uid: string;
   email: string;
   totalEarned: number;
   tasksTotal: number;
+}
+
+function maskEmail(email: string): string {
+  if (!email || typeof email !== "string") return "***@***.com";
+  const atIdx = email.indexOf("@");
+  if (atIdx < 0) return "***";
+  const local = email.slice(0, atIdx);
+  const domain = email.slice(atIdx);
+  if (local.length <= 3) return local + "***" + domain;
+  return local.slice(0, 3) + "***" + domain;
 }
 
 export default function RankingPage() {
@@ -22,7 +32,12 @@ export default function RankingPage() {
     return onValue(usersRef, (snap) => {
       const data = snap.val() ?? {};
       const list = Object.entries(data)
-        .map(([uid, val]: [string, any]) => ({ uid, ...val }))
+        .map(([uid, val]: [string, any]) => ({
+          uid,
+          email: val?.email ?? "",
+          totalEarned: val?.totalEarned ?? 0,
+          tasksTotal: val?.tasksTotal ?? 0,
+        }))
         .sort((a, b) => b.totalEarned - a.totalEarned)
         .slice(0, 10);
       setRanking(list);
@@ -30,11 +45,15 @@ export default function RankingPage() {
     });
   }, []);
 
-  const medalColors = ["text-yellow-400", "text-gray-300", "text-amber-600"];
   const medalIcons = ["🥇", "🥈", "🥉"];
+  const medalBg = [
+    "bg-[#FFD700]/10 border-[#FFD700]/30",
+    "bg-gray-500/10 border-gray-500/20",
+    "bg-amber-900/10 border-amber-700/20",
+  ];
 
   return (
-    <div className="min-h-screen bg-[#121212] pb-20">
+    <div className="min-h-screen bg-[#121212] pb-24">
       <TopBar />
 
       <div className="px-4 py-4">
@@ -61,33 +80,25 @@ export default function RankingPage() {
                 key={u.uid}
                 data-testid={`rank-${i}`}
                 className={`flex items-center gap-3 p-4 rounded-2xl border ${
-                  i === 0
-                    ? "bg-[#FFD700]/10 border-[#FFD700]/30"
-                    : i === 1
-                    ? "bg-gray-500/10 border-gray-500/20"
-                    : i === 2
-                    ? "bg-amber-900/10 border-amber-700/20"
-                    : "bg-[#1e1e1e] border-[#2a2a2a]"
+                  i < 3 ? medalBg[i] : "bg-[#1e1e1e] border-[#2a2a2a]"
                 }`}
               >
-                <div className="w-8 text-center">
+                <div className="w-8 text-center flex-shrink-0">
                   {i < 3 ? (
                     <span className="text-xl">{medalIcons[i]}</span>
                   ) : (
-                    <span className={`text-sm font-bold ${medalColors[i] || "text-gray-400"}`}>
-                      #{i + 1}
-                    </span>
+                    <span className="text-sm font-bold text-gray-400">#{i + 1}</span>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-medium truncate">
-                    {u.email.replace(/(.{3}).*@/, "$1***@")}
+                    {maskEmail(u.email)}
                   </p>
-                  <p className="text-gray-400 text-xs">{u.tasksTotal || 0} tarefas</p>
+                  <p className="text-gray-400 text-xs">{u.tasksTotal} tarefas</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex-shrink-0">
                   <p className="text-[#FFD700] text-sm font-bold">
-                    {formatCurrency(u.totalEarned || 0)}
+                    {formatCurrency(u.totalEarned)}
                   </p>
                   <p className="text-gray-500 text-[10px]">acumulado</p>
                 </div>

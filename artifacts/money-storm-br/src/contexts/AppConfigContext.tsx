@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { ref, onValue } from "firebase/database";
 import { db } from "@/lib/firebase";
 
-interface AppConfig {
+export interface AppConfig {
   appName: string;
   logoUrl: string;
   maintenanceMode: boolean;
@@ -18,6 +18,7 @@ interface AppConfig {
   buttonActive: boolean;
   buttonImageUrl: string;
   adLink: string;
+  unityAdsEnabled: boolean;
   unityGameIdAndroid: string;
   unityGameIdIos: string;
   unityTestMode: boolean;
@@ -29,7 +30,7 @@ interface AppConfig {
   directLinks: { url: string; name: string }[];
 }
 
-const defaultConfig: AppConfig = {
+export const defaultConfig: AppConfig = {
   appName: "MONEY STORM BR",
   logoUrl: "https://i.postimg.cc/0QfjxCdj/cee3592e-82fb-4b07-b0a0-dc23d690dc3d.png",
   maintenanceMode: false,
@@ -45,6 +46,7 @@ const defaultConfig: AppConfig = {
   buttonActive: true,
   buttonImageUrl: "https://i.postimg.cc/FzY4qbTM/78baa992-88a6-4418-a099-c1686f6f8016.png",
   adLink: "https://chewsever.com/zdte3fid?key=2147ca451d",
+  unityAdsEnabled: false,
   unityGameIdAndroid: "6099759",
   unityGameIdIos: "6099758",
   unityTestMode: true,
