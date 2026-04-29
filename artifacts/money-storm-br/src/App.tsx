@@ -1,7 +1,9 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppConfigProvider, useAppConfig } from "@/contexts/AppConfigContext";
+import { initUnityAds } from "@/lib/unityAds";
 import LoginPage from "@/pages/LoginPage";
 import HomePage from "@/pages/HomePage";
 import CarteiraPage from "@/pages/CarteiraPage";
@@ -26,6 +28,15 @@ function MaintenancePage() {
 function AppRoutes() {
   const { user, userData, loading } = useAuth();
   const { config, loading: configLoading } = useAppConfig();
+
+  // ── Unity Ads: initialize once when config is ready ──────────────────────
+  useEffect(() => {
+    if (configLoading) return;
+    const gameId = config.unityGameIdAndroid || "6099759";
+    const testMode = config.unityTestMode ?? false;
+    // Always pre-initialize so the SDK is ready when the user clicks
+    initUnityAds(gameId, testMode);
+  }, [configLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading || configLoading) {
     return (

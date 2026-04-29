@@ -3,6 +3,7 @@ import { ref as dbRef, runTransaction, push, get, set } from "firebase/database"
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppConfig } from "@/contexts/AppConfigContext";
+import { loadUnityAd, showUnityAd, isUnityAdsSdkReady } from "@/lib/unityAds";
 
 export type AdState = "idle" | "watching" | "can_close" | "cooldown";
 
@@ -112,17 +113,9 @@ export function useAdReward() {
     await refreshUserData();
   }, [user, config, refreshUserData]);
 
-  const watchAd = useCallback(() => {
-    if (!config.buttonActive || adState !== "idle" || !user) return;
-
-    const adUrl = config.adLink || config.monetagZone || "https://example.com";
-    const win = window.open(adUrl, "_blank");
-    adWindowRef.current = win;
-    setAdState("watching");
-
-    const totalTime = config.adTimer > 0 ? config.adTimer : 15;
+  /** Start the 15s overlay countdown (used by all ad paths) */
+  const startOverlayTimer = useCallback((totalTime: number) => {
     setTimerRemaining(totalTime);
-
     if (adTimerIntervalRef.current) clearInterval(adTimerIntervalRef.current);
     let count = totalTime;
     adTimerIntervalRef.current = setInterval(() => {
@@ -133,7 +126,47 @@ export function useAdReward() {
         setAdState("can_close");
       }
     }, 1000);
-  }, [adState, user, config]);
+  }, []);
+
+  const watchAd = useCallback(async () => {
+    if (!config.buttonActive || adState !== "idle" || !user) return;
+
+    // Activate overlay immediately — blocks UI, shows countdown
+    setAdState("watching");
+    const totalTime = config.adTimer > 0 ? config.adTimer : 15;
+    startOverlayTimer(totalTime);
+
+    const PLACEMENT_ID = "Rewarded_Android";
+    const fallbackUrl = config.adLink || config.monetagZone || "https://example.com";
+
+    if (config.unityAdsEnabled && isUnityAdsSdkReady()) {
+      console.log("[useAdReward] Unity Ads enabled — loading placement:", PLACEMENT_ID);
+      const adLoaded = await loadUnityAd(PLACEMENT_ID);
+
+      if (adLoaded) {
+        console.log("[useAdReward] Placement ready — showing Unity ad");
+        showUnityAd(
+          PLACEMENT_ID,
+          () => console.log("[useAdReward] Unity ad display started"),
+          (result) => console.log("[useAdReward] Unity ad finished:", result),
+          (err) => {
+            console.warn("[useAdReward] Unity show error, opening fallback URL:", err);
+            adWindowRef.current = window.open(fallbackUrl, "_blank");
+          }
+        );
+      } else {
+        console.warn("[useAdReward] Unity placement not ready — opening fallback URL");
+        adWindowRef.current = window.open(fallbackUrl, "_blank");
+      }
+    } else {
+      if (config.unityAdsEnabled) {
+        console.warn("[useAdReward] Unity enabled but SDK not initialized yet — opening fallback URL");
+      } else {
+        console.log("[useAdReward] Unity disabled — opening direct link");
+      }
+      adWindowRef.current = window.open(fallbackUrl, "_blank");
+    }
+  }, [adState, user, config, startOverlayTimer]);
 
   const completeWatch = useCallback(async () => {
     if (adState !== "can_close") return;
