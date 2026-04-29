@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { useAppConfig } from "@/contexts/AppConfigContext";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 export default function LoginPage() {
   const { login, register } = useAuth();
@@ -10,6 +11,8 @@ export default function LoginPage() {
   const [tab, setTab] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+  const [showReferral, setShowReferral] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +24,7 @@ export default function LoginPage() {
       if (tab === "login") {
         await login(email, password);
       } else {
-        await register(email, password, config.bonusCadastro);
+        await register(email, password, config.bonusCadastro, referralCode.trim() || undefined);
       }
       setLocation("/");
     } catch (err: any) {
@@ -118,6 +121,30 @@ export default function LoginPage() {
                 placeholder="Mínimo 6 caracteres"
               />
             </div>
+
+            {/* Referral code (register only) */}
+            {tab === "register" && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowReferral(!showReferral)}
+                  className="flex items-center gap-1 text-gray-400 text-xs hover:text-white transition-colors"
+                >
+                  {showReferral ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  Tem código de convite?
+                </button>
+                {showReferral && (
+                  <input
+                    type="text"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    placeholder="Digite o código"
+                    maxLength={8}
+                    className="mt-2 w-full bg-[#2a2a2a] border border-[#3a3a3a] rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-green-500 transition-colors placeholder-gray-600 tracking-widest uppercase"
+                  />
+                )}
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-900/30 border border-red-500/30 rounded-xl px-4 py-3">

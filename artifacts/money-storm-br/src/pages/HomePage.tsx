@@ -1,68 +1,234 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import TopBar from "@/components/TopBar";
 import BannerCarousel from "@/components/BannerCarousel";
 import WatchButton from "@/components/WatchButton";
-import ContentCard from "@/components/ContentCard";
 import BottomNav from "@/components/BottomNav";
 import { useCategories, useContents } from "@/hooks/useCategories";
-import { ChevronRight } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAppConfig } from "@/contexts/AppConfigContext";
+import { formatCurrency } from "@/lib/utils";
+
+// Categorias estáticas de missão (fallback + sempre exibidas)
+const STATIC_MISSIONS = [
+  {
+    id: "install",
+    name: "INSTALE UM APP\nE GANHE",
+    emoji: "📲",
+    bg: "bg-[#1a1a2e]",
+    iconBg: "bg-blue-900",
+  },
+  {
+    id: "watch",
+    name: "ASSISTIR E\nGANHAR 📷",
+    emoji: "▶️",
+    bg: "bg-[#1a2a1a]",
+    iconBg: "bg-blue-700",
+  },
+  {
+    id: "curso",
+    name: "CURSO DE\nECONOMIA 💰",
+    emoji: "🎓",
+    bg: "bg-[#1a1a2e]",
+    iconBg: "bg-indigo-800",
+  },
+  {
+    id: "noticias",
+    name: "NOTÍCIAS",
+    emoji: "📰",
+    bg: "bg-[#2a1a1a]",
+    iconBg: "bg-red-800",
+  },
+  {
+    id: "checkin",
+    name: "CHECK-IN DE\nNOTÍCIAS 🗞️",
+    emoji: "✅",
+    bg: "bg-[#1a1a2e]",
+    iconBg: "bg-red-900",
+  },
+  {
+    id: "video",
+    name: "VIDEO\nPREMIADO",
+    emoji: "🎬",
+    bg: "bg-[#2a1a1a]",
+    iconBg: "bg-red-700",
+  },
+  {
+    id: "lernoticias",
+    name: "Ler Notícias",
+    emoji: "📖",
+    bg: "bg-[#1e1e1e]",
+    iconBg: "bg-blue-400/20",
+  },
+];
+
+const ICON_IMAGES: Record<string, string> = {
+  install:
+    "https://img.icons8.com/fluency/96/download--v1.png",
+  watch:
+    "https://img.icons8.com/fluency/96/play-button-circled.png",
+  curso:
+    "https://img.icons8.com/fluency/96/graduation-cap.png",
+  noticias:
+    "https://img.icons8.com/fluency/96/news.png",
+  checkin:
+    "https://img.icons8.com/fluency/96/news.png",
+  video:
+    "https://img.icons8.com/fluency/96/youtube-play.png",
+  lernoticias:
+    "https://img.icons8.com/fluency/96/read.png",
+};
 
 export default function HomePage() {
+  const [, setLocation] = useLocation();
+  const { userData } = useAuth();
+  const { config } = useAppConfig();
   const categories = useCategories();
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const contents = useContents(selectedCategory || undefined);
+  const allContents = useContents();
+
+  const tasksToday = userData?.tasksToday ?? 0;
+  const taskLimit = config.limiteTarefasDia ?? 30;
+  const pct = Math.min((tasksToday / taskLimit) * 100, 100);
+
+  // "Ler Notícias" featured content
+  const lerNoticiaContent = allContents.find(
+    (c) => c.categoryId === "lernoticias" || c.title?.toLowerCase().includes("notícia")
+  );
+
+  const goToCategory = (id: string) => {
+    setLocation(`/category/${id}`);
+  };
+
+  // Build mission list: use Firebase categories when available, augmented with statics
+  const dynamicIds = categories.map((c) => c.id);
+  const missionsToShow = STATIC_MISSIONS.filter(
+    (m) => !dynamicIds.includes(m.id) || m.id === m.id
+  );
+
+  // For dynamic categories, use icon from their imageUrl
+  const allMissions = [
+    ...categories.map((c) => ({
+      id: c.id,
+      name: c.name.toUpperCase(),
+      emoji: c.icon,
+      bg: "bg-[#1e1e1e]",
+      iconBg: "bg-[#2a2a2a]",
+      imageUrl: c.imageUrl,
+      isDynamic: true,
+    })),
+    ...missionsToShow
+      .filter((m) => !dynamicIds.includes(m.id))
+      .map((m) => ({ ...m, imageUrl: ICON_IMAGES[m.id], isDynamic: false })),
+  ];
+
+  const showMissions = allMissions.length > 0 ? allMissions : missionsToShow.map((m) => ({
+    ...m, imageUrl: ICON_IMAGES[m.id], isDynamic: false,
+  }));
 
   return (
-    <div className="min-h-screen bg-[#121212] pb-20">
+    <div className="min-h-screen bg-[#121212] pb-24">
       <TopBar />
+
+      {/* Banner Carousel */}
       <BannerCarousel />
-      <WatchButton />
 
-      {categories.length > 0 && (
-        <div className="mt-2">
-          <div className="flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-hide">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              data-testid="cat-all"
-              className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-colors ${
-                selectedCategory === null
-                  ? "bg-[#FFD700] text-black"
-                  : "bg-[#1e1e1e] text-gray-300 border border-[#2a2a2a]"
-              }`}
-            >
-              Todos
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                data-testid={`cat-${cat.id}`}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold transition-colors ${
-                  selectedCategory === cat.id
-                    ? "bg-[#FFD700] text-black"
-                    : "bg-[#1e1e1e] text-gray-300 border border-[#2a2a2a]"
-                }`}
-              >
-                <span>{cat.icon}</span>
-                <span>{cat.name}</span>
-              </button>
-            ))}
-          </div>
+      {/* Tarefas hoje */}
+      <div className="mx-4 mt-3">
+        <div className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-sm">
+          <span className="text-gray-800 text-sm font-semibold">Tarefas hoje</span>
+          <span className="text-gray-800 text-sm font-bold">{tasksToday}/{taskLimit}</span>
         </div>
-      )}
+        <div className="mt-1 mx-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-green-500 rounded-full transition-all duration-500"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
 
-      <div className="px-4 mt-3">
-        {contents.length === 0 ? (
-          <div className="flex flex-col items-center py-16">
-            <p className="text-gray-500 text-sm">Nenhuma oferta disponível.</p>
+      {/* Botão Assistir e Ganhar */}
+      <WatchButton />
+      <p className="text-center text-green-400 text-sm font-semibold -mt-2 mb-3">
+        Assistir e Ganhar
+      </p>
+
+      {/* MISSÕES */}
+      <div className="px-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex-1 h-px bg-[#2a2a2a]" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-red-500">🎯</span>
+            <span className="text-[#FFD700] font-bold text-xs tracking-wide">
+              MISSÕES PARA GANHAR DINHEIRO
+            </span>
           </div>
+          <div className="flex-1 h-px bg-[#2a2a2a]" />
+        </div>
+
+        {/* Grid 3 colunas de ícones */}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {showMissions.map((mission) => (
+            <button
+              key={mission.id}
+              onClick={() => goToCategory(mission.id)}
+              data-testid={`mission-${mission.id}`}
+              className="flex flex-col items-center bg-[#1e1e1e] border border-[#2a2a2a] rounded-2xl p-3 gap-2 hover:border-[#FFD700]/30 active:scale-95 transition-all"
+            >
+              <div className="w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center bg-[#2a2a2a]">
+                {mission.imageUrl ? (
+                  <img
+                    src={mission.imageUrl}
+                    alt={mission.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      const el = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (el) el.style.display = "flex";
+                    }}
+                  />
+                ) : null}
+                <span
+                  className="text-2xl hidden items-center justify-center w-full h-full"
+                  style={{ display: mission.imageUrl ? "none" : "flex" }}
+                >
+                  {mission.emoji}
+                </span>
+              </div>
+              <p className="text-white text-[10px] font-semibold text-center leading-tight whitespace-pre-line">
+                {mission.name}
+              </p>
+            </button>
+          ))}
+        </div>
+
+        {/* Featured "Ler Notícias" card */}
+        {lerNoticiaContent ? (
+          <button
+            onClick={() => window.open(lerNoticiaContent.url, "_blank")}
+            className="w-full flex items-center gap-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-2xl px-4 py-3 hover:border-[#FFD700]/30 transition-colors mb-2"
+          >
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-xl">📰</span>
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-white text-sm font-semibold">{lerNoticiaContent.title}</p>
+              <p className="text-gray-400 text-xs">{lerNoticiaContent.description || "Ganhe por cada notícia lida"}</p>
+            </div>
+            <span className="text-green-400 text-xs font-bold">+{formatCurrency(lerNoticiaContent.reward)}</span>
+          </button>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {contents.map((content) => (
-              <ContentCard key={content.id} content={content} />
-            ))}
-          </div>
+          <button
+            onClick={() => goToCategory("lernoticias")}
+            className="w-full flex items-center gap-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-2xl px-4 py-3 hover:border-[#FFD700]/30 transition-colors mb-2"
+          >
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-xl">📰</span>
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-white text-sm font-semibold">Ler Notícias</p>
+              <p className="text-gray-400 text-xs">Ganhe por cada notícia lida</p>
+            </div>
+          </button>
         )}
       </div>
 

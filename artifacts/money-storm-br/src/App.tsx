@@ -8,6 +8,7 @@ import CarteiraPage from "@/pages/CarteiraPage";
 import RankingPage from "@/pages/RankingPage";
 import PerfilPage from "@/pages/PerfilPage";
 import AdminPage from "@/pages/AdminPage";
+import CategoryPage from "@/pages/CategoryPage";
 
 const queryClient = new QueryClient();
 
@@ -37,9 +38,7 @@ function AppRoutes() {
     );
   }
 
-  if (!user) {
-    return <LoginPage />;
-  }
+  if (!user) return <LoginPage />;
 
   if (userData?.isBanned) {
     return (
@@ -61,6 +60,7 @@ function AppRoutes() {
       <Route path="/ranking" component={RankingPage} />
       <Route path="/perfil" component={PerfilPage} />
       <Route path="/admin" component={AdminPage} />
+      <Route path="/category/:id" component={CategoryPage} />
       <Route>
         <div className="min-h-screen bg-[#121212] flex items-center justify-center">
           <p className="text-gray-400">Página não encontrada</p>

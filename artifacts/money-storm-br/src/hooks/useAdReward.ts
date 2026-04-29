@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { ref as dbRef, runTransaction, push, get, set } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,27 +15,59 @@ export function useAdReward() {
   const adWindowRef = useRef<Window | null>(null);
   const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const adTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const initialized = useRef(false);
+
+  // --- Persistent cooldown: read from Firebase on mount ---
+  useEffect(() => {
+    if (!user || initialized.current) return;
+    initialized.current = true;
+
+    const run = async () => {
+      const cooldownRef = dbRef(db, `users/${user.uid}/cooldownEndsAt`);
+      const snap = await get(cooldownRef);
+      if (snap.exists()) {
+        const endsAt = snap.val() as number;
+        const remaining = Math.round((endsAt - Date.now()) / 1000);
+        if (remaining > 0) {
+          startCooldownTimer(remaining);
+        }
+      }
+    };
+    run();
+  }, [user]); // eslint-disable-line
 
   const getCooldownDuration = useCallback(() => {
     const options = [config.cooldown1, config.cooldown2, config.cooldown3];
     return options[Math.floor(Math.random() * options.length)];
   }, [config]);
 
-  const startCooldown = useCallback((duration: number) => {
-    setCooldownRemaining(duration);
-    setAdState("cooldown");
+  const startCooldownTimer = useCallback((durationSec: number) => {
     if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+    setCooldownRemaining(durationSec);
+    setAdState("cooldown");
+    let count = durationSec;
     cooldownIntervalRef.current = setInterval(() => {
-      setCooldownRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(cooldownIntervalRef.current!);
-          setAdState("idle");
-          return 0;
+      count -= 1;
+      setCooldownRemaining(count);
+      if (count <= 0) {
+        clearInterval(cooldownIntervalRef.current!);
+        setAdState("idle");
+        setCooldownRemaining(0);
+        // clear firebase cooldown
+        if (user) {
+          set(dbRef(db, `users/${user.uid}/cooldownEndsAt`), 0).catch(() => {});
         }
-        return prev - 1;
-      });
+      }
     }, 1000);
-  }, []);
+  }, [user]);
+
+  const startCooldown = useCallback(async (duration: number) => {
+    if (user) {
+      const endsAt = Date.now() + duration * 1000;
+      await set(dbRef(db, `users/${user.uid}/cooldownEndsAt`), endsAt);
+    }
+    startCooldownTimer(duration);
+  }, [user, startCooldownTimer]);
 
   const creditReward = useCallback(async () => {
     if (!user) return;
@@ -47,37 +79,29 @@ export function useAdReward() {
     if (lockSnap.exists()) {
       const lockData = lockSnap.val();
       if (now - lockData.ts < 2000) {
-        const fraudRef = dbRef(db, `fraudLogs/${uid}/${now}`);
-        await set(fraudRef, { type: "double_credit", ts: now });
+        await set(dbRef(db, `fraudLogs/${uid}/${now}`), { type: "double_credit", ts: now });
         return;
       }
     }
     await set(lockRef, { ts: now });
 
-    const balanceRef = dbRef(db, `users/${uid}/balance`);
-    const totalRef = dbRef(db, `users/${uid}/totalEarned`);
-    const tasksTodayRef = dbRef(db, `users/${uid}/tasksToday`);
-    const tasksTotalRef = dbRef(db, `users/${uid}/tasksTotal`);
-
-    await runTransaction(balanceRef, (current) => {
+    await runTransaction(dbRef(db, `users/${uid}/balance`), (current) => {
       const prev = current ?? 0;
       const next = Math.round((prev + config.recompensaVideo) * 100) / 100;
       if (Math.abs(next - prev) > 1) {
-        const fraudRef = dbRef(db, `fraudLogs/${uid}/${now}`);
-        set(fraudRef, { type: "balance_jump", prev, next, ts: now });
+        set(dbRef(db, `fraudLogs/${uid}/${now}`), { type: "balance_jump", prev, next, ts: now });
         return;
       }
       return next;
     });
 
-    await runTransaction(totalRef, (current) =>
+    await runTransaction(dbRef(db, `users/${uid}/totalEarned`), (current) =>
       Math.round(((current ?? 0) + config.recompensaVideo) * 100) / 100
     );
-    await runTransaction(tasksTodayRef, (current) => (current ?? 0) + 1);
-    await runTransaction(tasksTotalRef, (current) => (current ?? 0) + 1);
+    await runTransaction(dbRef(db, `users/${uid}/tasksToday`), (current) => (current ?? 0) + 1);
+    await runTransaction(dbRef(db, `users/${uid}/tasksTotal`), (current) => (current ?? 0) + 1);
 
-    const txRef = dbRef(db, `transactions/${uid}`);
-    await push(txRef, {
+    await push(dbRef(db, `transactions/${uid}`), {
       type: "video",
       amount: config.recompensaVideo,
       description: "Assistir vídeo",
@@ -99,8 +123,8 @@ export function useAdReward() {
     const totalTime = config.adTimer > 0 ? config.adTimer : 15;
     setTimerRemaining(totalTime);
 
-    let count = totalTime;
     if (adTimerIntervalRef.current) clearInterval(adTimerIntervalRef.current);
+    let count = totalTime;
     adTimerIntervalRef.current = setInterval(() => {
       count -= 1;
       setTimerRemaining(count);
@@ -113,17 +137,15 @@ export function useAdReward() {
 
   const completeWatch = useCallback(async () => {
     if (adState !== "can_close") return;
-    // try to close the ad window
     try {
       if (adWindowRef.current && !adWindowRef.current.closed) {
         adWindowRef.current.close();
       }
-    } catch { /* cross-origin, ignore */ }
+    } catch { /* cross-origin */ }
     adWindowRef.current = null;
-
     await creditReward();
     const cooldown = getCooldownDuration();
-    startCooldown(cooldown);
+    await startCooldown(cooldown);
   }, [adState, creditReward, getCooldownDuration, startCooldown]);
 
   return { adState, cooldownRemaining, timerRemaining, watchAd, completeWatch };

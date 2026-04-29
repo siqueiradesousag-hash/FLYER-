@@ -6,10 +6,20 @@ import {
   signOut,
   onAuthStateChanged,
 } from "firebase/auth";
-import { ref, set, get, update } from "firebase/database";
+import { ref, set, get, update, runTransaction } from "firebase/database";
 import { auth, db } from "@/lib/firebase";
 
 const ADMIN_EMAIL = "moneystormbr@gmail.com";
+
+function generateReferralCode(uid: string): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    const idx = (uid.charCodeAt(i % uid.length) + i * 7) % chars.length;
+    code += chars[idx];
+  }
+  return code;
+}
 
 export interface UserData {
   uid: string;
@@ -26,6 +36,10 @@ export interface UserData {
   fraudScore: number;
   createdAt: number;
   pixKey?: string;
+  referralCode?: string;
+  referredBy?: string;
+  referralCount?: number;
+  cooldownEndsAt?: number;
 }
 
 interface AuthContextType {
@@ -33,7 +47,7 @@ interface AuthContextType {
   userData: UserData | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, bonusCadastro?: number) => Promise<void>;
+  register: (email: string, password: string, bonusCadastro?: number, referralCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
@@ -69,10 +83,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fraudScore: raw.fraudScore ?? 0,
         createdAt: raw.createdAt ?? Date.now(),
         pixKey: raw.pixKey ?? "",
+        referralCode: raw.referralCode ?? generateReferralCode(uid),
+        referredBy: raw.referredBy,
+        referralCount: raw.referralCount ?? 0,
+        cooldownEndsAt: raw.cooldownEndsAt ?? 0,
       };
-      // auto-grant admin flag in DB for moneystormbr@gmail.com
       if (isAdminByEmail && !raw.isAdmin) {
         await update(userRef, { isAdmin: true, role: "admin" });
+      }
+      // ensure referralCode is written
+      if (!raw.referralCode) {
+        await update(userRef, { referralCode: merged.referralCode });
+        await set(ref(db, `referralCodes/${merged.referralCode}`), uid);
       }
       setUserData(merged);
     }
@@ -99,11 +121,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const register = async (email: string, password: string, bonusCadastro = 0.25) => {
+  const register = async (
+    email: string,
+    password: string,
+    bonusCadastro = 0.25,
+    referralCode?: string
+  ) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     const uid = cred.user.uid;
     const now = Date.now();
     const isAdminByEmail = email === ADMIN_EMAIL;
+    const myReferralCode = generateReferralCode(uid);
+
+    // resolve referral
+    let referrerUid: string | null = null;
+    if (referralCode) {
+      const codeSnap = await get(ref(db, `referralCodes/${referralCode.toUpperCase()}`));
+      if (codeSnap.exists()) {
+        referrerUid = codeSnap.val();
+      }
+    }
+
     await set(ref(db, `users/${uid}`), {
       email,
       balance: bonusCadastro,
@@ -118,7 +156,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       fraudScore: 0,
       createdAt: now,
       pixKey: "",
+      referralCode: myReferralCode,
+      referredBy: referrerUid ?? null,
+      referralCount: 0,
+      cooldownEndsAt: 0,
     });
+
+    // write my referral code mapping
+    await set(ref(db, `referralCodes/${myReferralCode}`), uid);
+
+    // bonus tx
     await set(ref(db, `transactions/${uid}/${now}`), {
       type: "bonus",
       amount: bonusCadastro,
@@ -126,6 +173,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       status: "paid",
       timestamp: now,
     });
+
+    // credit referrer
+    if (referrerUid) {
+      const referBonusVal = 0.10; // configurable later
+      await runTransaction(ref(db, `users/${referrerUid}/balance`), (cur) =>
+        Math.round(((cur ?? 0) + referBonusVal) * 100) / 100
+      );
+      await runTransaction(ref(db, `users/${referrerUid}/referralCount`), (cur) => (cur ?? 0) + 1);
+      const refTxNow = Date.now() + 1;
+      await set(ref(db, `transactions/${referrerUid}/${refTxNow}`), {
+        type: "referral",
+        amount: referBonusVal,
+        description: `Bônus de indicação (${email})`,
+        status: "paid",
+        timestamp: refTxNow,
+      });
+    }
   };
 
   const logout = async () => {
