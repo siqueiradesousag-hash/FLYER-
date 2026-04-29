@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Money Storm BR</string>
+    <string name="title_activity_main">Money Storm BR</string>
+    <string name="package_name">br.moneystorm.app</string>
+    <string name="custom_url_scheme">br.moneystorm.app</string>
+</resources>
