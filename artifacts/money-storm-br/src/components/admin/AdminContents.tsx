@@ -23,6 +23,17 @@ interface Cont {
 }
 
 const TYPES = ["LINK", "SCRIPT", "EMBED", "YOUTUBE_ID", "CPA_LINK", "MONETAG_LINK", "BANNER", "NEWS_LINK", "OFFERWALL", "SURVEY", "DOWNLOAD"];
+
+// IDs fixos das categorias da Home — devem ser usados ao postar conteúdo
+const FIXED_CATEGORIES = [
+  { id: "instalar_app",     name: "INSTALE UM APP E GANHE" },
+  { id: "video_curto",      name: "ASSISTIR E GANHAR" },
+  { id: "cursos",           name: "CURSO DE ECONOMIA" },
+  { id: "noticias",         name: "NOTÍCIAS" },
+  { id: "checkin_noticias", name: "CHECK-IN DE NOTÍCIAS" },
+  { id: "video_premiado",   name: "VIDEO PREMIADO" },
+];
+
 const emptyContent: Omit<Cont, "id"> = {
   categoryId: "", title: "", description: "", coverImage: "", iconUrl: "",
   type: "LINK", openType: "new_tab", url: "", reward: 0.05,
@@ -32,7 +43,6 @@ const emptyContent: Omit<Cont, "id"> = {
 
 export default function AdminContents() {
   const [items, setItems] = useState<Cont[]>([]);
-  const [cats, setCats] = useState<{ id: string; name: string }[]>([]);
   const [editing, setEditing] = useState<Cont | typeof emptyContent | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
@@ -43,11 +53,7 @@ export default function AdminContents() {
       const data = snap.val() ?? {};
       setItems(Object.entries(data).map(([id, v]: [string, any]) => ({ id, ...v })).sort((a, b) => a.order - b.order));
     });
-    const u2 = onValue(ref(db, "categories"), (snap) => {
-      const data = snap.val() ?? {};
-      setCats(Object.entries(data).map(([id, v]: [string, any]) => ({ id, name: (v as any).name })));
-    });
-    return () => { u1(); u2(); };
+    return () => { u1(); };
   }, []);
 
   const filtered = items.filter((c) => {
@@ -83,7 +89,7 @@ export default function AdminContents() {
         <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." className="flex-1 bg-[#1e1e1e] border border-[#2a2a2a] rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-[#FFD700]" />
         <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="bg-[#1e1e1e] border border-[#2a2a2a] text-white text-xs rounded-xl px-3 outline-none">
           <option value="all">Todas</option>
-          {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {FIXED_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
 
@@ -93,8 +99,10 @@ export default function AdminContents() {
           <div>
             <label className="text-gray-400 text-xs">Categoria *</label>
             <select value={e.categoryId} onChange={(ev) => setEditing({ ...e, categoryId: ev.target.value })} className="w-full bg-[#2a2a2a] border border-[#3a3a3a] rounded-xl px-3 py-2 text-white text-sm mt-1 outline-none focus:border-[#FFD700]">
-              <option value="">Selecione</option>
-              {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              <option value="">Selecione uma categoria</option>
+              {FIXED_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
             </select>
           </div>
           <div>

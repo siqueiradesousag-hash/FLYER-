@@ -9,24 +9,24 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAppConfig } from "@/contexts/AppConfigContext";
 import { formatCurrency } from "@/lib/utils";
 
-// Categorias estáticas de missão (fallback + sempre exibidas)
+// IDs fixos de categorias — sincronizados com Firebase, ADM e CategoryPage
 const STATIC_MISSIONS = [
   {
-    id: "install",
+    id: "instalar_app",
     name: "INSTALE UM APP\nE GANHE",
     emoji: "📲",
     bg: "bg-[#1a1a2e]",
     iconBg: "bg-blue-900",
   },
   {
-    id: "watch",
+    id: "video_curto",
     name: "ASSISTIR E\nGANHAR 📷",
     emoji: "▶️",
     bg: "bg-[#1a2a1a]",
     iconBg: "bg-blue-700",
   },
   {
-    id: "curso",
+    id: "cursos",
     name: "CURSO DE\nECONOMIA 💰",
     emoji: "🎓",
     bg: "bg-[#1a1a2e]",
@@ -40,43 +40,28 @@ const STATIC_MISSIONS = [
     iconBg: "bg-red-800",
   },
   {
-    id: "checkin",
+    id: "checkin_noticias",
     name: "CHECK-IN DE\nNOTÍCIAS 🗞️",
     emoji: "✅",
     bg: "bg-[#1a1a2e]",
     iconBg: "bg-red-900",
   },
   {
-    id: "video",
+    id: "video_premiado",
     name: "VIDEO\nPREMIADO",
     emoji: "🎬",
     bg: "bg-[#2a1a1a]",
     iconBg: "bg-red-700",
   },
-  {
-    id: "lernoticias",
-    name: "Ler Notícias",
-    emoji: "📖",
-    bg: "bg-[#1e1e1e]",
-    iconBg: "bg-blue-400/20",
-  },
 ];
 
 const ICON_IMAGES: Record<string, string> = {
-  install:
-    "https://img.icons8.com/fluency/96/download--v1.png",
-  watch:
-    "https://img.icons8.com/fluency/96/play-button-circled.png",
-  curso:
-    "https://img.icons8.com/fluency/96/graduation-cap.png",
-  noticias:
-    "https://img.icons8.com/fluency/96/news.png",
-  checkin:
-    "https://img.icons8.com/fluency/96/news.png",
-  video:
-    "https://img.icons8.com/fluency/96/youtube-play.png",
-  lernoticias:
-    "https://img.icons8.com/fluency/96/read.png",
+  instalar_app:  "https://img.icons8.com/fluency/96/download--v1.png",
+  video_curto:   "https://img.icons8.com/fluency/96/play-button-circled.png",
+  cursos:        "https://img.icons8.com/fluency/96/graduation-cap.png",
+  noticias:      "https://img.icons8.com/fluency/96/news.png",
+  checkin_noticias: "https://img.icons8.com/fluency/96/news.png",
+  video_premiado:"https://img.icons8.com/fluency/96/youtube-play.png",
 };
 
 export default function HomePage() {
@@ -92,37 +77,21 @@ export default function HomePage() {
 
   // "Ler Notícias" featured content
   const lerNoticiaContent = allContents.find(
-    (c) => c.categoryId === "lernoticias" || c.title?.toLowerCase().includes("notícia")
+    (c) => c.categoryId === "noticias" || c.title?.toLowerCase().includes("notícia")
   );
 
   const goToCategory = (id: string) => {
     setLocation(`/category/${id}`);
   };
 
-  // Build mission list: use Firebase categories when available, augmented with statics
-  const dynamicIds = categories.map((c) => c.id);
-  const missionsToShow = STATIC_MISSIONS.filter(
-    (m) => !dynamicIds.includes(m.id) || m.id === m.id
-  );
+  // Always show the 6 fixed static missions.
+  // If a Firebase category has the same fixed ID, use its imageUrl as icon override.
+  const firebaseById: Record<string, { imageUrl?: string; icon?: string }> = {};
+  for (const c of categories) firebaseById[c.id] = c;
 
-  // For dynamic categories, use icon from their imageUrl
-  const allMissions = [
-    ...categories.map((c) => ({
-      id: c.id,
-      name: c.name.toUpperCase(),
-      emoji: c.icon,
-      bg: "bg-[#1e1e1e]",
-      iconBg: "bg-[#2a2a2a]",
-      imageUrl: c.imageUrl,
-      isDynamic: true,
-    })),
-    ...missionsToShow
-      .filter((m) => !dynamicIds.includes(m.id))
-      .map((m) => ({ ...m, imageUrl: ICON_IMAGES[m.id], isDynamic: false })),
-  ];
-
-  const showMissions = allMissions.length > 0 ? allMissions : missionsToShow.map((m) => ({
-    ...m, imageUrl: ICON_IMAGES[m.id], isDynamic: false,
+  const showMissions = STATIC_MISSIONS.map((m) => ({
+    ...m,
+    imageUrl: firebaseById[m.id]?.imageUrl || ICON_IMAGES[m.id],
   }));
 
   return (

@@ -6,13 +6,12 @@ import { formatCurrency } from "@/lib/utils";
 import { Zap } from "lucide-react";
 
 const CATEGORY_TITLES: Record<string, string> = {
-  install: "INSTALE UM APP E GANHE",
-  watch: "ASSISTIR E GANHAR",
-  curso: "CURSO DE ECONOMIA",
-  noticias: "NOTÍCIAS",
-  checkin: "CHECK-IN DE NOTÍCIAS",
-  video: "VIDEO PREMIADO",
-  lernoticias: "LER NOTÍCIAS",
+  instalar_app:     "INSTALE UM APP E GANHE",
+  video_curto:      "ASSISTIR E GANHAR",
+  cursos:           "CURSO DE ECONOMIA",
+  noticias:         "NOTÍCIAS",
+  checkin_noticias: "CHECK-IN DE NOTÍCIAS",
+  video_premiado:   "VIDEO PREMIADO",
 };
 
 export default function CategoryPage() {

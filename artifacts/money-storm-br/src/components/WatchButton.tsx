@@ -17,7 +17,7 @@ export default function WatchButton() {
     <>
       {/* In-app overlay shown while ad is open */}
       {(isWatching || canClose) && (
-        <div style={{ zIndex: 99999 }} className="fixed inset-0 bg-black/95 flex flex-col items-center justify-center pointer-events-auto">
+        <div style={{ position: "fixed", zIndex: 999999, top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.92)" }} className="flex flex-col items-center justify-center pointer-events-auto">
           <div className="bg-[#1e1e1e] border border-[#2a2a2a] rounded-3xl p-8 mx-6 flex flex-col items-center gap-6 max-w-sm w-full">
             {isWatching ? (
               <>
