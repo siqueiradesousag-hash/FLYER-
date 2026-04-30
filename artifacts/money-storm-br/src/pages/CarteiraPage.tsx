@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ref, onValue, runTransaction, push } from "firebase/database";
+import { ref, onValue, runTransaction, push, set as dbSet } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppConfig } from "@/contexts/AppConfigContext";
@@ -77,31 +77,48 @@ export default function CarteiraPage() {
     }
     setLoading(true);
     try {
+      // 1. Atomicamente: deduz do saldo disponível e soma ao saldo pendente
       const balanceRef = ref(db, `users/${user.uid}/balance`);
+      let committed = false;
       await runTransaction(balanceRef, (current) => {
-        if ((current ?? 0) < amount) return;
+        if ((current ?? 0) < amount) return; // abort
+        committed = true;
         return Math.round(((current ?? 0) - amount) * 100) / 100;
       });
-      const txRef = ref(db, `transactions/${user.uid}`);
-      await push(txRef, {
+      if (!committed) {
+        setMsg("Saldo insuficiente");
+        setMsgType("error");
+        setTimeout(() => setMsg(""), 3000);
+        return;
+      }
+      await runTransaction(ref(db, `users/${user.uid}/pendingBalance`), (cur) =>
+        Math.round(((cur ?? 0) + amount) * 100) / 100
+      );
+
+      // 2. Registra a transação no histórico
+      const wid = `${Date.now()}`;
+      await push(ref(db, `transactions/${user.uid}`), {
         type: "withdraw",
         amount: -amount,
         description: `Saque via PIX (${pixKey})`,
         status: "pending",
         timestamp: Date.now(),
         pixKey,
+        wid,
       });
-      const withdrawRef = ref(db, `withdrawals/${user.uid}/${Date.now()}`);
-      const { set } = await import("firebase/database");
-      await set(withdrawRef, {
+
+      // 3. Cria o pedido de saque para o painel ADM
+      await dbSet(ref(db, `withdrawals/${user.uid}/${wid}`), {
         uid: user.uid,
         email: userData.email,
         amount,
         pixKey,
         status: "pending",
         timestamp: Date.now(),
+        wid,
       });
-      setMsg("Solicitação de saque enviada!");
+
+      setMsg("Saque solicitado! Seu saldo foi bloqueado até a aprovação.");
       setMsgType("success");
       setWithdrawAmount("");
       await refreshUserData();
@@ -110,7 +127,7 @@ export default function CarteiraPage() {
       setMsgType("error");
     } finally {
       setLoading(false);
-      setTimeout(() => setMsg(""), 3000);
+      setTimeout(() => setMsg(""), 4000);
     }
   };
 
@@ -131,6 +148,7 @@ export default function CarteiraPage() {
       <TopBar />
 
       <div className="px-4 py-4 space-y-4">
+        {/* Saldo disponível */}
         <div className="bg-[#1e1e1e] rounded-2xl p-4 border border-[#2a2a2a]">
           <p className="text-gray-400 text-xs mb-1">Saldo disponível</p>
           <p className="text-[#FFD700] text-3xl font-bold">
@@ -140,6 +158,19 @@ export default function CarteiraPage() {
             Mínimo para saque: {formatCurrency(config.saqueMinimo)}
           </p>
         </div>
+
+        {/* Saldo bloqueado/pendente */}
+        {(userData?.pendingBalance ?? 0) > 0 && (
+          <div className="bg-[#1e1e1e] rounded-2xl p-4 border border-yellow-500/30 flex items-center justify-between">
+            <div>
+              <p className="text-yellow-400 text-xs font-semibold mb-0.5">⏳ Saldo Bloqueado</p>
+              <p className="text-gray-400 text-[11px]">Aguardando aprovação do saque</p>
+            </div>
+            <p className="text-yellow-400 text-xl font-bold">
+              {formatCurrency(userData!.pendingBalance!)}
+            </p>
+          </div>
+        )}
 
         <div className="bg-[#1e1e1e] rounded-2xl p-4 border border-[#2a2a2a] space-y-3">
           <h3 className="text-white font-semibold text-sm">Chave PIX</h3>

@@ -136,9 +136,9 @@ export default function PerfilPage() {
 
               <button
                 onClick={() => {
-                  const text = `🤑 Use meu código ${userData.referralCode} no MONEY STORM BR e ganhe bônus grátis! Baixe agora e comece a ganhar dinheiro assistindo vídeos! 💰`;
+                  const text = `🤑 Use meu código ${userData.referralCode} no MONEY STORM BR e ganhe bônus grátis! Baixe agora e comece a ganhar dinheiro assistindo vídeos! 💰\n👉 https://cash-pix-go.base44.app/`;
                   if (navigator.share) {
-                    navigator.share({ title: "Money Storm BR", text });
+                    navigator.share({ title: "Money Storm BR", text, url: "https://cash-pix-go.base44.app/" });
                   } else {
                     navigator.clipboard.writeText(text);
                     alert("Texto copiado! Cole e compartilhe com seus amigos.");

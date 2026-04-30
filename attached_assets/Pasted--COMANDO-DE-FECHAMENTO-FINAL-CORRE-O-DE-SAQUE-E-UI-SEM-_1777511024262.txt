@@ -1,0 +1,23 @@
+🛑 COMANDO DE FECHAMENTO FINAL: CORREÇÃO DE SAQUE E UI (SEM ALTERAR HOME) 🛑
+
+Agent, execute este plano de finalização com prioridade máxima para economizar créditos. Leia todo o código atual, mas NÃO altere as categorias da Home. Use a imagem 'project_20260429_0811257-01.png' apenas como referência visual de layout.
+
+1. SEGURANÇA E FLUXO DE SAQUE (CORREÇÃO CRÍTICA):
+- SOLICITAÇÃO: Quando o usuário pedir o saque, o valor deve sair IMEDIATAMENTE do "Saldo Disponível" e entrar em "Saldo Bloqueado/Pendente". O usuário NÃO pode mais ver esse valor como disponível para gastar.
+- APROVAÇÃO PELO ADM: Quando eu (ADM) aprovar o saque no painel, o status deve mudar para "Aprovado" para o usuário e o valor deve ser DEBITADO permanentemente do banco de dados.
+- REJEIÇÃO PELO ADM: Se o saque for rejeitado, o valor que estava bloqueado deve ser ESTORNADO automaticamente para o "Saldo Disponível" do usuário.
+- SINCRONIZAÇÃO: Garanta que o app do usuário atualize o status de "Pendente" para "Aprovado" assim que a alteração for feita no Firebase.
+
+2. INTERFACE DE ANÚNCIO (ESTILO OVERLAY):
+- Todo anúncio ou link externo deve abrir com um Overlay (z-index: 999999) por cima.
+- TOPO DA TELA: Implemente o cronômetro de 15s e a barra de progresso verde idênticos à imagem de referência.
+- LÓGICA DO BOTÃO: Substitua o número do cronômetro pelo botão "X" (fechar) assim que o tempo zerar. O "X" deve ser o único modo de voltar ao app.
+
+3. CORREÇÃO DO LINK DE CONVITE:
+- Certifique-se de que o link 'https://cash-pix-go.base44.app/' esteja incluído ao final da mensagem de indicação para ser clicável.
+
+4. SDK UNITY E PREPARAÇÃO PARA APK:
+- Garanta que os IDs (Game ID: 6099759, Rewarded_Android, Interstitial_Android, Banner_Android) estão injetados.
+- Configure o 'capacitor.config.json' para aceitar 'npx cap sync android' sem erros, permitindo gerar o APK no Android Studio ou via terminal no celular.
+
+ENTREGA: Revise o sistema para garantir que o saque funciona de ponta a ponta (Solicitar -> Bloquear -> Aprovar/Debitar), sem mexer na Home já finalizada.

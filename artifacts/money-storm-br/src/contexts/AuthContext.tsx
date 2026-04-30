@@ -40,6 +40,7 @@ export interface UserData {
   referredBy?: string;
   referralCount?: number;
   cooldownEndsAt?: number;
+  pendingBalance?: number;
 }
 
 interface AuthContextType {
@@ -87,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         referredBy: raw.referredBy,
         referralCount: raw.referralCount ?? 0,
         cooldownEndsAt: raw.cooldownEndsAt ?? 0,
+        pendingBalance: raw.pendingBalance ?? 0,
       };
       if (isAdminByEmail && !raw.isAdmin) {
         await update(userRef, { isAdmin: true, role: "admin" });

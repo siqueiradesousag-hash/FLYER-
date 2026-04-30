@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ref, onValue, set } from "firebase/database";
+import { ref, onValue, set, runTransaction } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -45,8 +45,23 @@ export default function AdminWithdrawals() {
     rejected: withdrawals.filter((w) => w.status === "rejected").length,
   };
 
-  const updateStatus = async (w: Withdrawal, status: string) => {
-    await set(ref(db, `withdrawals/${w.uid}/${w.wid}/status`), status);
+  const updateStatus = async (w: Withdrawal, status: "approved" | "rejected") => {
+    if (status === "approved") {
+      // Aprovação: deduz do pendingBalance (saldo já foi retirado do balance ao solicitar)
+      await runTransaction(ref(db, `users/${w.uid}/pendingBalance`), (cur) =>
+        Math.max(0, Math.round(((cur ?? 0) - w.amount) * 100) / 100)
+      );
+      await set(ref(db, `withdrawals/${w.uid}/${w.wid}/status`), "approved");
+    } else {
+      // Rejeição: estorna o valor de volta ao balance e zera do pendingBalance
+      await runTransaction(ref(db, `users/${w.uid}/balance`), (cur) =>
+        Math.round(((cur ?? 0) + w.amount) * 100) / 100
+      );
+      await runTransaction(ref(db, `users/${w.uid}/pendingBalance`), (cur) =>
+        Math.max(0, Math.round(((cur ?? 0) - w.amount) * 100) / 100)
+      );
+      await set(ref(db, `withdrawals/${w.uid}/${w.wid}/status`), "rejected");
+    }
   };
 
   return (
