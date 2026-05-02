@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppConfigProvider, useAppConfig } from "@/contexts/AppConfigContext";
 import { initUnityAds } from "@/lib/unityAds";
+
+// Importações das suas páginas existentes
 import LoginPage from "@/pages/LoginPage";
 import HomePage from "@/pages/HomePage";
 import CarteiraPage from "@/pages/CarteiraPage";
@@ -13,6 +15,28 @@ import AdminPage from "@/pages/AdminPage";
 import CategoryPage from "@/pages/CategoryPage";
 
 const queryClient = new QueryClient();
+
+// --- TELA DE REGISTRO EMBUTIDA (Para evitar erros de importação) ---
+function RegisterPage() {
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get("ref") || "Nenhum";
+
+  return (
+    <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center p-6 text-center">
+      <h1 className="text-[#FFD700] text-3xl font-bold mb-4">Money Storm BR</h1>
+      <div className="bg-[#1e1e1e] p-6 rounded-2xl border border-[#2a2a2a] w-full max-w-sm">
+        <p className="text-gray-400 mb-2">Você foi convidado por:</p>
+        <p className="text-white font-mono font-bold text-xl mb-6">{ref}</p>
+        <button 
+          onClick={() => window.location.href = "/"}
+          className="w-full bg-green-600 text-white font-bold py-3 rounded-xl"
+        >
+          CRIAR MINHA CONTA
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function MaintenancePage() {
   const { config } = useAppConfig();
@@ -29,54 +53,51 @@ function AppRoutes() {
   const { user, userData, loading } = useAuth();
   const { config, loading: configLoading } = useAppConfig();
 
-  // ── Unity Ads: initialize once when config is ready ──────────────────────
   useEffect(() => {
     if (configLoading) return;
     const gameId = config.unityGameIdAndroid || "6099759";
     const testMode = config.unityTestMode ?? false;
-    // Always pre-initialize so the SDK is ready when the user clicks
     initUnityAds(gameId, testMode);
-  }, [configLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [configLoading]);
 
   if (loading || configLoading) {
     return (
       <div className="min-h-screen bg-[#121212] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-400 text-sm">Carregando...</p>
-        </div>
+        <div className="w-10 h-10 border-4 border-[#FFD700] border-t-transparent rounded-full animate-spin" />
       </div>
     );
-  }
-
-  if (!user) return <LoginPage />;
-
-  if (userData?.isBanned) {
-    return (
-      <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center px-4 text-center">
-        <p className="text-red-400 text-xl font-bold mb-2">Conta suspensa</p>
-        <p className="text-gray-400 text-sm">Entre em contato com o suporte.</p>
-      </div>
-    );
-  }
-
-  if (config.maintenanceMode && !userData?.isAdmin) {
-    return <MaintenancePage />;
   }
 
   return (
     <Switch>
-      <Route path="/" component={HomePage} />
-      <Route path="/carteira" component={CarteiraPage} />
-      <Route path="/ranking" component={RankingPage} />
-      <Route path="/perfil" component={PerfilPage} />
-      <Route path="/admin" component={AdminPage} />
-      <Route path="/category/:id" component={CategoryPage} />
-      <Route>
-        <div className="min-h-screen bg-[#121212] flex items-center justify-center">
-          <p className="text-gray-400">Página não encontrada</p>
-        </div>
-      </Route>
+      {/* Rota de convite liberada para todos */}
+      <Route path="/register" component={RegisterPage} />
+
+      {/* Se não estiver logado, manda para Login */}
+      {!user ? (
+        <Route component={LoginPage} />
+      ) : (
+        <>
+          {userData?.isBanned ? (
+            <Route>
+              <div className="min-h-screen bg-[#121212] flex items-center justify-center text-red-400">
+                Conta suspensa.
+              </div>
+            </Route>
+          ) : config.maintenanceMode && !userData?.isAdmin ? (
+            <Route component={MaintenancePage} />
+          ) : (
+            <>
+              <Route path="/" component={HomePage} />
+              <Route path="/carteira" component={CarteiraPage} />
+              <Route path="/ranking" component={RankingPage} />
+              <Route path="/perfil" component={PerfilPage} />
+              <Route path="/admin" component={AdminPage} />
+              <Route path="/category/:id" component={CategoryPage} />
+            </>
+          )}
+        </>
+      )}
     </Switch>
   );
 }
