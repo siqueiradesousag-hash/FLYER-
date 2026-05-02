@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ref, onValue, runTransaction, push, set as dbSet } from "firebase/database";
+import { ref, onValue, push, set as dbSet } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppConfig } from "@/contexts/AppConfigContext";
@@ -27,6 +27,7 @@ export default function CarteiraPage() {
   const [msg, setMsg] = useState("");
   const [msgType, setMsgType] = useState<"success" | "error">("success");
 
+  // Busca histórico de transações em tempo real
   useEffect(() => {
     if (!user) return;
     const txRef = ref(db, `transactions/${user.uid}`);
@@ -39,64 +40,75 @@ export default function CarteiraPage() {
     });
   }, [user]);
 
+  // Sincroniza a chave PIX quando os dados do usuário carregam
   useEffect(() => {
-    setPixKey(userData?.pixKey || "");
+    if (userData?.pixKey) setPixKey(userData.pixKey);
   }, [userData]);
 
   const savePixKey = async () => {
     if (!user || !pixKey.trim()) return;
-    const { ref: dbRefFn, set } = await import("firebase/database");
-    const { db: fireDb } = await import("@/lib/firebase");
-    const keyRef = dbRefFn(fireDb, `users/${user.uid}/pixKey`);
-    await (await import("firebase/database")).set(keyRef, pixKey.trim());
-    setMsg("Chave PIX salva!");
-    setMsgType("success");
-    setTimeout(() => setMsg(""), 3000);
+    try {
+      const keyRef = ref(db, `users/${user.uid}/pixKey`);
+      await dbSet(keyRef, pixKey.trim());
+      setMsg("Chave PIX salva!");
+      setMsgType("success");
+      setTimeout(() => setMsg(""), 3000);
+    } catch (err) {
+      setMsg("Erro ao salvar chave");
+      setMsgType("error");
+    }
   };
 
   const requestWithdraw = async () => {
     if (!user || !userData) return;
+
+    // LÓGICA DE SALDO ROBUSTA: Lê balance ou saldo e força ser número
     const amount = parseFloat(withdrawAmount);
-    if (isNaN(amount) || amount < config.saqueMinimo) {
-      setMsg(`Valor mínimo de saque: ${formatCurrency(config.saqueMinimo)}`);
+    const saldoDisponivel = Number(userData.balance || userData.saldo || 0);
+    const minimoSaque = Number(config?.saqueMinimo || 0.25);
+
+    // Validação de valor mínimo
+    if (isNaN(amount) || amount < minimoSaque) {
+      setMsg(`Valor mínimo de saque: ${formatCurrency(minimoSaque)}`);
       setMsgType("error");
       setTimeout(() => setMsg(""), 3000);
       return;
     }
-    if (amount > userData.balance) {
+
+    // Validação de saldo (com arredondamento para evitar bugs de centavos do JS)
+    if (amount > (Math.round(saldoDisponivel * 100) / 100)) {
       setMsg("Saldo insuficiente");
       setMsgType("error");
       setTimeout(() => setMsg(""), 3000);
       return;
     }
+
     if (!pixKey.trim()) {
       setMsg("Cadastre sua chave PIX primeiro");
       setMsgType("error");
       setTimeout(() => setMsg(""), 3000);
       return;
     }
+
     setLoading(true);
     try {
-      // 1. Atomicamente: deduz do saldo disponível e soma ao saldo pendente
-      const balanceRef = ref(db, `users/${user.uid}/balance`);
-      let committed = false;
-      await runTransaction(balanceRef, (current) => {
-        if ((current ?? 0) < amount) return; // abort
-        committed = true;
-        return Math.round(((current ?? 0) - amount) * 100) / 100;
-      });
-      if (!committed) {
-        setMsg("Saldo insuficiente");
-        setMsgType("error");
-        setTimeout(() => setMsg(""), 3000);
-        return;
-      }
-      await runTransaction(ref(db, `users/${user.uid}/pendingBalance`), (cur) =>
-        Math.round(((cur ?? 0) + amount) * 100) / 100
-      );
+      const novoSaldo = Math.round((saldoDisponivel - amount) * 100) / 100;
+      const novoPendente = Math.round(((userData.pendingBalance || 0) + amount) * 100) / 100;
 
-      // 2. Registra a transação no histórico
-      const wid = `${Date.now()}`;
+      // ATUALIZAÇÃO MÚLTIPLA: Garante compatibilidade com as regras do Firebase
+      const updates: any = {};
+      updates[`users/${user.uid}/balance`] = novoSaldo;
+      updates[`users/${user.uid}/saldo`] = novoSaldo; // Para bater com a regra de segurança
+      updates[`users/${user.uid}/pendingBalance`] = novoPendente;
+
+      // Executa as atualizações de saldo
+      await dbSet(ref(db, `users/${user.uid}/balance`), novoSaldo);
+      await dbSet(ref(db, `users/${user.uid}/saldo`), novoSaldo);
+      await dbSet(ref(db, `users/${user.uid}/pendingBalance`), novoPendente);
+
+      const wid = `WID${Date.now()}`;
+
+      // Registra a transação no histórico do usuário
       await push(ref(db, `transactions/${user.uid}`), {
         type: "withdraw",
         amount: -amount,
@@ -107,23 +119,24 @@ export default function CarteiraPage() {
         wid,
       });
 
-      // 3. Cria o pedido de saque para o painel ADM
+      // Cria a solicitação oficial para o Painel Administrativo
       await dbSet(ref(db, `withdrawals/${user.uid}/${wid}`), {
         uid: user.uid,
-        email: userData.email,
-        amount,
-        pixKey,
+        email: userData.email || "Usuário",
+        amount: amount,
+        pixKey: pixKey,
         status: "pending",
         timestamp: Date.now(),
-        wid,
+        wid: wid,
       });
 
-      setMsg("Saque solicitado! Seu saldo foi bloqueado até a aprovação.");
+      setMsg("Saque solicitado com sucesso!");
       setMsgType("success");
       setWithdrawAmount("");
-      await refreshUserData();
-    } catch {
-      setMsg("Erro ao solicitar saque");
+      if (refreshUserData) await refreshUserData();
+    } catch (error) {
+      console.error("Erro ao processar saque:", error);
+      setMsg("Erro ao processar saque. Verifique sua conexão.");
       setMsgType("error");
     } finally {
       setLoading(false);
@@ -148,23 +161,23 @@ export default function CarteiraPage() {
       <TopBar />
 
       <div className="px-4 py-4 space-y-4">
-        {/* Saldo disponível */}
+        {/* Card de Saldo Principal */}
         <div className="bg-[#1e1e1e] rounded-2xl p-4 border border-[#2a2a2a]">
           <p className="text-gray-400 text-xs mb-1">Saldo disponível</p>
           <p className="text-[#FFD700] text-3xl font-bold">
-            {userData ? formatCurrency(userData.balance) : "R$ 0,00"}
+            {formatCurrency(Number(userData?.balance || userData?.saldo || 0))}
           </p>
           <p className="text-gray-500 text-xs mt-1">
-            Mínimo para saque: {formatCurrency(config.saqueMinimo)}
+            Mínimo para saque: {formatCurrency(Number(config?.saqueMinimo || 0.25))}
           </p>
         </div>
 
-        {/* Saldo bloqueado/pendente */}
+        {/* Card de Saldo Bloqueado/Pendente */}
         {(userData?.pendingBalance ?? 0) > 0 && (
           <div className="bg-[#1e1e1e] rounded-2xl p-4 border border-yellow-500/30 flex items-center justify-between">
             <div>
-              <p className="text-yellow-400 text-xs font-semibold mb-0.5">⏳ Saldo Bloqueado</p>
-              <p className="text-gray-400 text-[11px]">Aguardando aprovação do saque</p>
+              <p className="text-yellow-400 text-xs font-semibold">⏳ Saldo em Processamento</p>
+              <p className="text-gray-400 text-[10px]">Aguardando pagamento administrativo</p>
             </div>
             <p className="text-yellow-400 text-xl font-bold">
               {formatCurrency(userData!.pendingBalance!)}
@@ -172,83 +185,68 @@ export default function CarteiraPage() {
           </div>
         )}
 
+        {/* Configuração de PIX */}
         <div className="bg-[#1e1e1e] rounded-2xl p-4 border border-[#2a2a2a] space-y-3">
-          <h3 className="text-white font-semibold text-sm">Chave PIX</h3>
+          <h3 className="text-white font-semibold text-sm">Dados de Recebimento</h3>
           <input
             type="text"
             value={pixKey}
             onChange={(e) => setPixKey(e.target.value)}
-            data-testid="input-pix-key"
-            placeholder="CPF, email, telefone ou chave aleatória"
-            className="w-full bg-[#2a2a2a] border border-[#3a3a3a] rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#FFD700] transition-colors"
+            placeholder="Chave PIX (CPF, E-mail ou Celular)"
+            className="w-full bg-[#2a2a2a] border border-[#3a3a3a] rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#FFD700]"
           />
           <button
             onClick={savePixKey}
-            data-testid="button-save-pix"
-            className="w-full bg-[#2a2a2a] border border-[#FFD700]/30 text-[#FFD700] text-sm font-semibold py-2.5 rounded-xl hover:bg-[#FFD700]/10 transition-colors"
+            className="w-full bg-[#2a2a2a] border border-[#FFD700]/30 text-[#FFD700] text-sm font-semibold py-2.5 rounded-xl transition-active active:scale-95"
           >
-            Salvar Chave PIX
+            Salvar Minha Chave PIX
           </button>
         </div>
 
+        {/* Área de Saque */}
         <div className="bg-[#1e1e1e] rounded-2xl p-4 border border-[#2a2a2a] space-y-3">
-          <h3 className="text-white font-semibold text-sm">Solicitar Saque</h3>
+          <h3 className="text-white font-semibold text-sm">Solicitar Resgate</h3>
           <input
             type="number"
             value={withdrawAmount}
             onChange={(e) => setWithdrawAmount(e.target.value)}
-            data-testid="input-withdraw-amount"
-            placeholder={`Mínimo R$ ${config.saqueMinimo.toFixed(2)}`}
-            className="w-full bg-[#2a2a2a] border border-[#3a3a3a] rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#FFD700] transition-colors"
+            placeholder="Quanto deseja sacar?"
+            className="w-full bg-[#2a2a2a] border border-[#3a3a3a] rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#FFD700]"
           />
           <button
             onClick={requestWithdraw}
             disabled={loading}
-            data-testid="button-withdraw"
-            className="w-full bg-[#FFD700] text-black font-bold py-3 rounded-xl text-sm hover:bg-[#e6c200] transition-colors disabled:opacity-50"
+            className="w-full bg-[#FFD700] text-black font-bold py-3 rounded-xl text-sm disabled:opacity-50 transition-active active:scale-95"
           >
-            {loading ? "Processando..." : "Sacar via PIX"}
+            {loading ? "Processando..." : "Realizar Saque PIX"}
           </button>
         </div>
 
+        {/* Alertas de Feedback */}
         {msg && (
-          <div
-            className={`rounded-xl px-4 py-3 border ${
-              msgType === "success"
-                ? "bg-green-900/30 border-green-500/30 text-green-400"
-                : "bg-red-900/30 border-red-500/30 text-red-400"
-            }`}
-          >
-            <p className="text-sm">{msg}</p>
+          <div className={`rounded-xl px-4 py-3 border ${msgType === "success" ? "bg-green-900/30 border-green-500/30 text-green-400" : "bg-red-900/30 border-red-500/30 text-red-400"}`}>
+            <p className="text-sm font-medium">{msg}</p>
           </div>
         )}
 
+        {/* Histórico Recente */}
         <div className="bg-[#1e1e1e] rounded-2xl p-4 border border-[#2a2a2a]">
-          <h3 className="text-white font-semibold text-sm mb-3">Histórico de Transações</h3>
+          <h3 className="text-white font-semibold text-sm mb-3">Últimas Movimentações</h3>
           {transactions.length === 0 ? (
-            <p className="text-gray-500 text-sm text-center py-4">Nenhuma transação ainda.</p>
+            <p className="text-gray-500 text-sm text-center py-4">Sem registros de saque ainda.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {transactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  data-testid={`tx-${tx.id}`}
-                  className="flex items-center justify-between py-2 border-b border-[#2a2a2a] last:border-0"
-                >
-                  <div>
-                    <p className="text-white text-xs font-medium">{tx.description}</p>
+                <div key={tx.id} className="flex items-center justify-between py-2 border-b border-[#2a2a2a] last:border-0">
+                  <div className="max-w-[70%]">
+                    <p className="text-white text-xs font-medium truncate">{tx.description}</p>
                     <p className="text-gray-500 text-[10px]">{formatDate(tx.timestamp)}</p>
                   </div>
                   <div className="text-right">
-                    <p
-                      className={`text-xs font-bold ${
-                        tx.amount >= 0 ? "text-green-400" : "text-red-400"
-                      }`}
-                    >
-                      {tx.amount >= 0 ? "+" : ""}
-                      {formatCurrency(tx.amount)}
+                    <p className={`text-xs font-bold ${tx.amount >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      {tx.amount >= 0 ? "+" : ""}{formatCurrency(tx.amount)}
                     </p>
-                    <p className={`text-[10px] ${statusColor[tx.status] || "text-gray-400"}`}>
+                    <p className={`text-[10px] font-semibold ${statusColor[tx.status] || "text-gray-400"}`}>
                       {statusLabel[tx.status] || tx.status}
                     </p>
                   </div>

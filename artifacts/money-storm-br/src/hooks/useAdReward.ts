@@ -1,185 +1,113 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { ref as dbRef, runTransaction, push, get, set } from "firebase/database";
+import { ref as dbRef, runTransaction, push, serverTimestamp } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppConfig } from "@/contexts/AppConfigContext";
-import { loadUnityAd, showUnityAd, isUnityAdsSdkReady } from "@/lib/unityAds";
 
-export type AdState = "idle" | "watching" | "can_close" | "cooldown";
-
+// ESTE É O EXPORT QUE ESTAVA FALTANDO E CAUSOU O ERRO
 export function useAdReward() {
   const { user, refreshUserData } = useAuth();
   const { config } = useAppConfig();
-  const [adState, setAdState] = useState<AdState>("idle");
+  const [adState, setAdState] = useState<"idle" | "watching" | "can_close" | "cooldown">("idle");
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [timerRemaining, setTimerRemaining] = useState(0);
-  const adWindowRef = useRef<Window | null>(null);
-  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const adTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const initialized = useRef(false);
+  const timerRef = useRef<any>(null);
 
-  // --- Persistent cooldown: read from Firebase on mount ---
+  // Recuperar Cooldown Persistente
   useEffect(() => {
-    if (!user || initialized.current) return;
-    initialized.current = true;
-
-    const run = async () => {
-      const cooldownRef = dbRef(db, `users/${user.uid}/cooldownEndsAt`);
-      const snap = await get(cooldownRef);
-      if (snap.exists()) {
-        const endsAt = snap.val() as number;
-        const remaining = Math.round((endsAt - Date.now()) / 1000);
-        if (remaining > 0) {
-          startCooldownTimer(remaining);
-        }
-      }
-    };
-    run();
-  }, [user]); // eslint-disable-line
-
-  const getCooldownDuration = useCallback(() => {
-    const options = [config.cooldown1, config.cooldown2, config.cooldown3];
-    return options[Math.floor(Math.random() * options.length)];
-  }, [config]);
-
-  const startCooldownTimer = useCallback((durationSec: number) => {
-    if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
-    setCooldownRemaining(durationSec);
-    setAdState("cooldown");
-    let count = durationSec;
-    cooldownIntervalRef.current = setInterval(() => {
-      count -= 1;
-      setCooldownRemaining(count);
-      if (count <= 0) {
-        clearInterval(cooldownIntervalRef.current!);
-        setAdState("idle");
-        setCooldownRemaining(0);
-        // clear firebase cooldown
-        if (user) {
-          set(dbRef(db, `users/${user.uid}/cooldownEndsAt`), 0).catch(() => {});
-        }
-      }
-    }, 1000);
-  }, [user]);
-
-  const startCooldown = useCallback(async (duration: number) => {
-    if (user) {
-      const endsAt = Date.now() + duration * 1000;
-      await set(dbRef(db, `users/${user.uid}/cooldownEndsAt`), endsAt);
-    }
-    startCooldownTimer(duration);
-  }, [user, startCooldownTimer]);
-
-  const creditReward = useCallback(async () => {
-    if (!user) return;
-    const uid = user.uid;
-    const lockRef = dbRef(db, `locks/${uid}/adReward`);
-    const now = Date.now();
-
-    const lockSnap = await get(lockRef);
-    if (lockSnap.exists()) {
-      const lockData = lockSnap.val();
-      if (now - lockData.ts < 2000) {
-        await set(dbRef(db, `fraudLogs/${uid}/${now}`), { type: "double_credit", ts: now });
-        return;
+    if (!user?.uid) return;
+    const savedEnd = localStorage.getItem(`cd_end_${user.uid}`);
+    if (savedEnd) {
+      const remaining = Math.floor((Number(savedEnd) - Date.now()) / 1000);
+      if (remaining > 0) {
+        setAdState("cooldown");
+        setCooldownRemaining(remaining);
       }
     }
-    await set(lockRef, { ts: now });
+  }, [user?.uid]);
 
-    await runTransaction(dbRef(db, `users/${uid}/balance`), (current) => {
-      const prev = current ?? 0;
-      const next = Math.round((prev + config.recompensaVideo) * 100) / 100;
-      if (Math.abs(next - prev) > 1) {
-        set(dbRef(db, `fraudLogs/${uid}/${now}`), { type: "balance_jump", prev, next, ts: now });
-        return;
-      }
-      return next;
-    });
-
-    await runTransaction(dbRef(db, `users/${uid}/totalEarned`), (current) =>
-      Math.round(((current ?? 0) + config.recompensaVideo) * 100) / 100
-    );
-    await runTransaction(dbRef(db, `users/${uid}/tasksToday`), (current) => (current ?? 0) + 1);
-    await runTransaction(dbRef(db, `users/${uid}/tasksTotal`), (current) => (current ?? 0) + 1);
-
-    await push(dbRef(db, `transactions/${uid}`), {
-      type: "video",
-      amount: config.recompensaVideo,
-      description: "Assistir vídeo",
-      status: "paid",
-      timestamp: now,
-    });
-
-    await refreshUserData();
-  }, [user, config, refreshUserData]);
-
-  /** Start the 15s overlay countdown (used by all ad paths) */
-  const startOverlayTimer = useCallback((totalTime: number) => {
-    setTimerRemaining(totalTime);
-    if (adTimerIntervalRef.current) clearInterval(adTimerIntervalRef.current);
-    let count = totalTime;
-    adTimerIntervalRef.current = setInterval(() => {
-      count -= 1;
-      setTimerRemaining(count);
-      if (count <= 0) {
-        clearInterval(adTimerIntervalRef.current!);
-        setAdState("can_close");
-      }
-    }, 1000);
-  }, []);
-
-  const watchAd = useCallback(async () => {
-    if (!config.buttonActive || adState !== "idle" || !user) return;
-
-    // Activate overlay immediately — blocks UI, shows countdown
-    setAdState("watching");
-    const totalTime = config.adTimer > 0 ? config.adTimer : 15;
-    startOverlayTimer(totalTime);
-
-    const PLACEMENT_ID = "Rewarded_Android";
-    const fallbackUrl = config.adLink || config.monetagZone || "https://example.com";
-
-    if (config.unityAdsEnabled && isUnityAdsSdkReady()) {
-      console.log("[useAdReward] Unity Ads enabled — loading placement:", PLACEMENT_ID);
-      const adLoaded = await loadUnityAd(PLACEMENT_ID);
-
-      if (adLoaded) {
-        console.log("[useAdReward] Placement ready — showing Unity ad");
-        showUnityAd(
-          PLACEMENT_ID,
-          () => console.log("[useAdReward] Unity ad display started"),
-          (result) => console.log("[useAdReward] Unity ad finished:", result),
-          (err) => {
-            console.warn("[useAdReward] Unity show error, opening fallback URL:", err);
-            adWindowRef.current = window.open(fallbackUrl, "_blank");
+  // Contador do Cooldown
+  useEffect(() => {
+    let int: any;
+    if (adState === "cooldown" && cooldownRemaining > 0) {
+      int = setInterval(() => {
+        setCooldownRemaining(p => {
+          if (p <= 1) {
+            localStorage.removeItem(`cd_end_${user?.uid}`);
+            setAdState("idle");
+            return 0;
           }
-        );
-      } else {
-        console.warn("[useAdReward] Unity placement not ready — opening fallback URL");
-        adWindowRef.current = window.open(fallbackUrl, "_blank");
-      }
-    } else {
-      if (config.unityAdsEnabled) {
-        console.warn("[useAdReward] Unity enabled but SDK not initialized yet — opening fallback URL");
-      } else {
-        console.log("[useAdReward] Unity disabled — opening direct link");
-      }
-      adWindowRef.current = window.open(fallbackUrl, "_blank");
+          return p - 1;
+        });
+      }, 1000);
     }
-  }, [adState, user, config, startOverlayTimer]);
+    return () => clearInterval(int);
+  }, [adState, cooldownRemaining, user?.uid]);
+
+  const watchAd = useCallback(() => {
+    if (adState !== "idle" || !user) return;
+    if (config?.adLink) window.open(config.adLink, "_blank");
+    setAdState("watching");
+    setTimerRemaining(config?.adTimer || 15);
+
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTimerRemaining(prev => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          setAdState("can_close");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [adState, user, config]);
 
   const completeWatch = useCallback(async () => {
-    if (adState !== "can_close") return;
+    if (adState !== "can_close" || !user?.uid) return;
+
     try {
-      if (adWindowRef.current && !adWindowRef.current.closed) {
-        adWindowRef.current.close();
-      }
-    } catch { /* cross-origin */ }
-    adWindowRef.current = null;
-    await creditReward();
-    const cooldown = getCooldownDuration();
-    await startCooldown(cooldown);
-  }, [adState, creditReward, getCooldownDuration, startCooldown]);
+      const userPath = `users/${user.uid}`;
+
+      await runTransaction(dbRef(db, userPath), (userData) => {
+        if (userData) {
+          // Atualiza o saldo financeiro detectado no Firebase
+          const reward = Number(config?.recompensaVideo || 0);
+          userData.balance = (Number(userData.balance) || 0) + reward;
+          userData.totalEarned = (Number(userData.totalEarned) || 0) + reward;
+
+          // ATUALIZAÇÃO DOS CONTADORES (Sincroniza sua tela e a do usuário)
+          // Na foto o ADM está em 5 e o Usuário em 4
+          userData.tasksToday = (userData.tasksToday || 0) + 1; 
+          userData.viewsToday = (userData.viewsToday || 0) + 1;
+          userData.vistos = (userData.vistos || 0) + 1;
+          userData.tasksTotal = (userData.tasksTotal || 0) + 1;
+
+          userData.lastVideoAt = serverTimestamp();
+        }
+        return userData;
+      });
+
+      await push(dbRef(db, `transactions/${user.uid}`), {
+        type: "video",
+        amount: config?.recompensaVideo || 0,
+        timestamp: Date.now(),
+        status: "paid"
+      });
+
+      await refreshUserData();
+
+      const options = [config?.cooldown1, config?.cooldown2, config?.cooldown3].filter(Boolean);
+      const chosen = Number(options[Math.floor(Math.random() * options.length)]) || 60;
+
+      localStorage.setItem(`cd_end_${user.uid}`, (Date.now() + chosen * 1000).toString());
+      setAdState("cooldown");
+      setCooldownRemaining(chosen);
+    } catch (e) {
+      console.error("Erro:", e);
+      setAdState("idle");
+    }
+  }, [adState, user, config, refreshUserData]);
 
   return { adState, cooldownRemaining, timerRemaining, watchAd, completeWatch };
 }

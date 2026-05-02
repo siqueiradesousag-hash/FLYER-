@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ref, onValue, set, runTransaction } from "firebase/database";
+import { ref, onValue, set, runTransaction, get } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -46,21 +46,49 @@ export default function AdminWithdrawals() {
   };
 
   const updateStatus = async (w: Withdrawal, status: "approved" | "rejected") => {
-    if (status === "approved") {
-      // Aprovação: deduz do pendingBalance (saldo já foi retirado do balance ao solicitar)
-      await runTransaction(ref(db, `users/${w.uid}/pendingBalance`), (cur) =>
-        Math.max(0, Math.round(((cur ?? 0) - w.amount) * 100) / 100)
-      );
-      await set(ref(db, `withdrawals/${w.uid}/${w.wid}/status`), "approved");
-    } else {
-      // Rejeição: estorna o valor de volta ao balance e zera do pendingBalance
-      await runTransaction(ref(db, `users/${w.uid}/balance`), (cur) =>
-        Math.round(((cur ?? 0) + w.amount) * 100) / 100
-      );
-      await runTransaction(ref(db, `users/${w.uid}/pendingBalance`), (cur) =>
-        Math.max(0, Math.round(((cur ?? 0) - w.amount) * 100) / 100)
-      );
-      await set(ref(db, `withdrawals/${w.uid}/${w.wid}/status`), "rejected");
+    try {
+      // 1. Atualiza o status na pasta administrativa
+      await set(ref(db, `withdrawals/${w.uid}/${w.wid}/status`), status);
+
+      // 2. SINCRONIZAÇÃO AUTOMÁTICA COM O HISTÓRICO DO USUÁRIO
+      // Mapeia "approved" do admin para "paid" do app para manter o padrão verde
+      const userStatus = status === "approved" ? "paid" : "rejected";
+
+      const userTransRef = ref(db, `transactions/${w.uid}`);
+      const txSnapshot = await get(userTransRef);
+
+      if (txSnapshot.exists()) {
+        const transactions = txSnapshot.val();
+        const txKey = Object.keys(transactions).find(
+          (key) => transactions[key].wid === w.wid
+        );
+
+        if (txKey) {
+          await set(ref(db, `transactions/${w.uid}/${txKey}/status`), userStatus);
+        }
+      }
+
+      // 3. Lógica de Saldos (Mantida e Corrigida)
+      if (status === "approved") {
+        await runTransaction(ref(db, `users/${w.uid}/pendingBalance`), (cur) =>
+          Math.max(0, Math.round(((cur ?? 0) - w.amount) * 100) / 100)
+        );
+      } else {
+        // Se rejeitar, o dinheiro volta para o balance (ou saldo) do usuário
+        const extorno = (cur: number | null) => Math.round(((cur ?? 0) + w.amount) * 100) / 100;
+
+        await runTransaction(ref(db, `users/${w.uid}/balance`), extorno);
+        await runTransaction(ref(db, `users/${w.uid}/saldo`), extorno); // Garante os dois campos
+
+        await runTransaction(ref(db, `users/${w.uid}/pendingBalance`), (cur) =>
+          Math.max(0, Math.round(((cur ?? 0) - w.amount) * 100) / 100)
+        );
+      }
+
+      alert(`Saque ${status === "approved" ? "aprovado" : "recusado"} com sucesso!`);
+    } catch (error) {
+      console.error("Erro ao processar saque:", error);
+      alert("Erro técnico ao atualizar. Tente novamente.");
     }
   };
 
@@ -75,7 +103,6 @@ export default function AdminWithdrawals() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            data-testid={`tab-${t}`}
             className={`flex-1 text-xs font-semibold py-2 rounded-full transition-colors ${
               tab === t
                 ? "bg-[#FFD700] text-black"
@@ -94,20 +121,10 @@ export default function AdminWithdrawals() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por email..."
-          data-testid="search-withdrawals"
           className="w-full bg-[#1e1e1e] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-[#FFD700] pl-8"
         />
-        <svg
-          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
       </div>
 
@@ -118,16 +135,12 @@ export default function AdminWithdrawals() {
       ) : (
         <div className="space-y-3">
           {filtered.map((w) => (
-            <div
-              key={`${w.uid}-${w.wid}`}
-              data-testid={`withdrawal-${w.wid}`}
-              className="bg-[#1e1e1e] rounded-2xl p-4 border border-[#2a2a2a] space-y-2"
-            >
+            <div key={`${w.uid}-${w.wid}`} className="bg-[#1e1e1e] rounded-2xl p-4 border border-[#2a2a2a] space-y-2">
               <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-white text-sm font-semibold">{w.email}</p>
-                  <p className="text-gray-400 text-xs">PIX: {w.pixKey}</p>
-                  <p className="text-gray-500 text-xs">{formatDate(w.timestamp)}</p>
+                <div className="max-w-[70%]">
+                  <p className="text-white text-sm font-semibold truncate">{w.email}</p>
+                  <p className="text-gray-400 text-[10px] break-all">PIX: {w.pixKey}</p>
+                  <p className="text-gray-500 text-[10px]">{formatDate(w.timestamp)}</p>
                 </div>
                 <p className="text-[#FFD700] font-bold text-sm">{formatCurrency(w.amount)}</p>
               </div>
@@ -135,15 +148,13 @@ export default function AdminWithdrawals() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => updateStatus(w, "approved")}
-                    data-testid={`approve-${w.wid}`}
-                    className="flex-1 bg-green-600 text-white text-xs font-bold py-2 rounded-xl hover:bg-green-700"
+                    className="flex-1 bg-green-600 text-white text-xs font-bold py-2 rounded-xl hover:bg-green-700 active:scale-95 transition-transform"
                   >
                     Aprovar
                   </button>
                   <button
                     onClick={() => updateStatus(w, "rejected")}
-                    data-testid={`reject-${w.wid}`}
-                    className="flex-1 bg-red-600 text-white text-xs font-bold py-2 rounded-xl hover:bg-red-700"
+                    className="flex-1 bg-red-600 text-white text-xs font-bold py-2 rounded-xl hover:bg-red-700 active:scale-95 transition-transform"
                   >
                     Recusar
                   </button>
