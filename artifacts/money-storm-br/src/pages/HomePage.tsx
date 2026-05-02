@@ -10,7 +10,7 @@ import { useAppConfig } from "@/contexts/AppConfigContext";
 import { formatCurrency } from "@/lib/utils";
 
 const STATIC_MISSIONS = [
-  { id: "instalar_app", name: "INSTALE UM APP\nE GANHE", emoji: "📲", bg: "bg-[#1a1a2e]", iconBg: "bg-blue-900" },
+  { id: "instalar_app", name: "CONVIDAR AMIGOS\nE GANHAR", emoji: "📲", bg: "bg-[#1a1a2e]", iconBg: "bg-blue-900" },
   { id: "video_curto", name: "ASSISTIR E\nGANHAR 📷", emoji: "▶️", bg: "bg-[#1a2a1a]", iconBg: "bg-blue-700" },
   { id: "cursos", name: "CURSO DE\nECONOMIA 💰", emoji: "🎓", bg: "bg-[#1a1a2e]", iconBg: "bg-indigo-800" },
   { id: "noticias", name: "NOTÍCIAS", emoji: "📰", bg: "bg-[#2a1a1a]", iconBg: "bg-red-800" },
@@ -19,7 +19,7 @@ const STATIC_MISSIONS = [
 ];
 
 const ICON_IMAGES: Record<string, string> = {
-  instalar_app: "https://img.icons8.com/fluency/96/download--v1.png",
+  instalar_app: "https://img.icons8.com/fluency/96/group.png",
   video_curto: "https://img.icons8.com/fluency/96/play-button-circled.png",
   cursos: "https://img.icons8.com/fluency/96/graduation-cap.png",
   noticias: "https://img.icons8.com/fluency/96/news.png",
@@ -29,7 +29,7 @@ const ICON_IMAGES: Record<string, string> = {
 
 export default function HomePage() {
   const [, setLocation] = useLocation();
-  const { userData } = useAuth();
+  const { userData } = useAuth(); // Pega os dados do usuário logado
   const { config } = useAppConfig();
   const categories = useCategories();
   const allContents = useContents();
@@ -38,25 +38,35 @@ export default function HomePage() {
   const taskLimit = config.limiteTarefasDia ?? 30;
   const pct = Math.min((tasksToday / taskLimit) * 100, 100);
 
-  const lerNoticiaContent = allContents.find(
-    (c) => c.categoryId === "noticias" || c.title?.toLowerCase().includes("notícia")
-  );
+  // FUNÇÃO DE CONVITE DINÂMICO
+  const handleInvite = () => {
+    // Pega o código único do usuário logado
+    const refCode = userData?.referralCode || "U8W2RKP6";
+
+    // Link original que você solicitou
+    const appUrl = `https://money-storm-build--moneystormbr1.replit.app/register?ref=${refCode}`;
+
+    const message = `🤑 Ganhe bônus no MONEY STORM BR!\n\nUse meu código: ${refCode}\n\nComece a lucrar agora mesmo! 💰\n👉 ${appUrl}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'Money Storm BR',
+        text: message,
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(message);
+      alert("Link de convite copiado com sucesso!");
+    }
+  };
 
   const goToCategory = (id: string) => setLocation(`/category/${id}`);
-
-  const firebaseById: Record<string, { imageUrl?: string; icon?: string }> = {};
-  for (const c of categories) firebaseById[c.id] = c;
-
-  const showMissions = STATIC_MISSIONS.map((m) => ({
-    ...m,
-    imageUrl: firebaseById[m.id]?.imageUrl || ICON_IMAGES[m.id],
-  }));
 
   return (
     <div className="min-h-screen bg-[#121212] pb-24">
       <TopBar />
       <BannerCarousel />
 
+      {/* Barra de Progresso de Tarefas */}
       <div className="mx-4 mt-3">
         <div className="bg-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-sm">
           <span className="text-gray-800 text-sm font-semibold">Tarefas hoje</span>
@@ -80,36 +90,23 @@ export default function HomePage() {
           <div className="flex-1 h-px bg-[#2a2a2a]" />
         </div>
 
+        {/* Grid de Missões */}
         <div className="grid grid-cols-3 gap-2 mb-3">
-          {showMissions.map((m) => (
-            <button key={m.id} onClick={() => goToCategory(m.id)} className="flex flex-col items-center bg-[#1e1e1e] border border-[#2a2a2a] rounded-2xl p-3 gap-2 hover:border-[#FFD700]/30 active:scale-95 transition-all">
+          {STATIC_MISSIONS.map((m) => (
+            <button 
+              key={m.id} 
+              onClick={() => m.id === "instalar_app" ? handleInvite() : goToCategory(m.id)} 
+              className="flex flex-col items-center bg-[#1e1e1e] border border-[#2a2a2a] rounded-2xl p-3 gap-2 hover:border-[#FFD700]/30 active:scale-95 transition-all"
+            >
               <div className="w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center bg-[#2a2a2a]">
-                {m.imageUrl ? <img src={m.imageUrl} alt={m.name} className="w-full h-full object-cover" /> : <span className="text-2xl">{m.emoji}</span>}
+                <img src={ICON_IMAGES[m.id]} alt={m.name} className="w-full h-full object-cover" />
               </div>
               <p className="text-white text-[10px] font-semibold text-center leading-tight whitespace-pre-line">{m.name}</p>
             </button>
           ))}
         </div>
-
-        {lerNoticiaContent ? (
-          <button onClick={() => window.open(lerNoticiaContent.url, "_blank")} className="w-full flex items-center gap-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-2xl px-4 py-3 hover:border-[#FFD700]/30 transition-colors mb-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0"><span>📰</span></div>
-            <div className="flex-1 text-left">
-              <p className="text-white text-sm font-semibold">{lerNoticiaContent.title}</p>
-              <p className="text-gray-400 text-xs">{lerNoticiaContent.description || "Ganhe por cada notícia lida"}</p>
-            </div>
-            <span className="text-green-400 text-xs font-bold">+{formatCurrency(lerNoticiaContent.reward)}</span>
-          </button>
-        ) : (
-          <button onClick={() => goToCategory("lernoticias")} className="w-full flex items-center gap-3 bg-[#1e1e1e] border border-[#2a2a2a] rounded-2xl px-4 py-3 hover:border-[#FFD700]/30 transition-colors mb-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0"><span>📰</span></div>
-            <div className="flex-1 text-left">
-              <p className="text-white text-sm font-semibold">Ler Notícias</p>
-              <p className="text-gray-400 text-xs">Ganhe por cada notícia lida</p>
-            </div>
-          </button>
-        )}
       </div>
+
       <BottomNav />
     </div>
   );

@@ -1,6 +1,9 @@
 import { useEffect, useState, type ComponentType } from "react";
-
 import { modules as discoveredModules } from "./.generated/mockup-components";
+
+// Importação das suas páginas principais
+import HomePage from "./pages/HomePage";
+import RegisterPage from "./pages/RegisterPage"; 
 
 type ModuleMap = Record<string, () => Promise<Record<string, unknown>>>;
 
@@ -19,128 +22,53 @@ function _resolveComponent(
   );
 }
 
-function PreviewRenderer({
-  componentPath,
-  modules,
-}: {
-  componentPath: string;
-  modules: ModuleMap;
-}) {
+function PreviewRenderer({ componentPath, modules }: { componentPath: string; modules: ModuleMap }) {
   const [Component, setComponent] = useState<ComponentType | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-
-    setComponent(null);
-    setError(null);
-
     async function loadComponent(): Promise<void> {
       const key = `./components/mockups/${componentPath}.tsx`;
       const loader = modules[key];
       if (!loader) {
-        setError(`No component found at ${componentPath}.tsx`);
+        setError(`Página não encontrada no preview.`);
         return;
       }
-
       try {
         const mod = await loader();
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
         const name = componentPath.split("/").pop()!;
         const comp = _resolveComponent(mod, name);
-        if (!comp) {
-          setError(
-            `No exported React component found in ${componentPath}.tsx\n\nMake sure the file has at least one exported function component.`,
-          );
-          return;
-        }
-        setComponent(() => comp);
+        setComponent(() => comp || null);
       } catch (e) {
-        if (cancelled) {
-          return;
-        }
-
-        const message = e instanceof Error ? e.message : String(e);
-        setError(`Failed to load preview.\n${message}`);
+        setError("Erro ao carregar componente.");
       }
     }
-
-    void loadComponent();
-
-    return () => {
-      cancelled = true;
-    };
+    loadComponent();
+    return () => { cancelled = true; };
   }, [componentPath, modules]);
 
-  if (error) {
-    return (
-      <pre style={{ color: "red", padding: "2rem", fontFamily: "system-ui" }}>
-        {error}
-      </pre>
-    );
-  }
-
-  if (!Component) return null;
-
-  return <Component />;
-}
-
-function getBasePath(): string {
-  return import.meta.env.BASE_URL.replace(/\/$/, "");
-}
-
-function getPreviewExamplePath(): string {
-  const basePath = getBasePath();
-  return `${basePath}/preview/ComponentName`;
-}
-
-function Gallery() {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-      <div className="text-center max-w-md">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-3">
-          Component Preview Server
-        </h1>
-        <p className="text-gray-500 mb-4">
-          This server renders individual components for the workspace canvas.
-        </p>
-        <p className="text-sm text-gray-400">
-          Access component previews at{" "}
-          <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">
-            {getPreviewExamplePath()}
-          </code>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function getPreviewPath(): string | null {
-  const basePath = getBasePath();
-  const { pathname } = window.location;
-  const local =
-    basePath && pathname.startsWith(basePath)
-      ? pathname.slice(basePath.length) || "/"
-      : pathname;
-  const match = local.match(/^\/preview\/(.+)$/);
-  return match ? match[1] : null;
+  if (error) return <div style={{color: 'white', padding: '20px'}}>{error}</div>;
+  return Component ? <Component /> : null;
 }
 
 function App() {
-  const previewPath = getPreviewPath();
+  const path = window.location.pathname;
 
-  if (previewPath) {
-    return (
-      <PreviewRenderer
-        componentPath={previewPath}
-        modules={discoveredModules}
-      />
-    );
+  // ROTA DE REGISTRO: Se o link termina em /register, abre o cadastro
+  if (path.startsWith("/register")) {
+    return <RegisterPage />;
   }
 
-  return <Gallery />;
+  // ROTA DE PREVIEW: Mantém as ferramentas do Replit funcionando
+  if (path.startsWith("/preview/")) {
+    const componentPath = path.replace("/preview/", "");
+    return <PreviewRenderer componentPath={componentPath} modules={discoveredModules} />;
+  }
+
+  // ROTA PADRÃO: Qualquer outro link abre a HomePage do Money Storm
+  return <HomePage />;
 }
 
 export default App;
