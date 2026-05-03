@@ -6,9 +6,6 @@ export default function WatchButton() {
   const { adState, cooldownRemaining, timerRemaining, watchAd, completeWatch } = useAdReward();
   const { config } = useAppConfig();
 
-  // O seu link da Monetag ou afiliado
-  const adLink = "https://omg10.com/4/10828209";
-
   if (!config?.buttonActive) return null;
 
   const isWatching = adState === "watching";
@@ -17,9 +14,18 @@ export default function WatchButton() {
   const isIdle     = adState === "idle";
 
   const handleStartAd = () => {
-    // Abre o anúncio em nova aba para evitar bloqueio de iframe (Shopee/Ali/Monetag)
-    window.open(adLink, "_blank");
-    // Inicia o cronômetro no seu app
+    // 1. Definição do link com fallback para evitar erros de execução
+    const targetLink = config?.adLink || "";
+
+    // 2. Só tenta abrir se houver um link real configurado no ADM
+    if (targetLink && targetLink.startsWith("http")) {
+      window.open(targetLink, "_blank");
+    } else {
+      console.warn("WatchButton: Nenhum link configurado no ADM. Iniciando apenas o cronômetro.");
+    }
+
+    // 3. DISPARO CRÍTICO: O cronômetro DEVE iniciar aqui para abrir o modal
+    // Movido para fora de qualquer condição para garantir que o 'quadrado' abra sempre.
     watchAd();
   };
 
@@ -28,10 +34,8 @@ export default function WatchButton() {
       {/* TELA DE CRONÔMETRO (MODAL) */}
       {(isWatching || canClose) && (
         <div className="fixed inset-0 z-[9999999] flex flex-col items-center justify-center p-6 bg-black/95 backdrop-blur-md">
-
           <div className="relative w-full max-w-[340px] bg-[#1e1e1e] rounded-[40px] p-8 border border-[#FFD700]/20 shadow-[0_0_50px_rgba(0,0,0,1)] text-center">
 
-            {/* ÍCONE DE STATUS */}
             <div className="mb-6 relative inline-block">
               <div className="w-24 h-24 rounded-full border-4 border-[#2a2a2a] flex items-center justify-center">
                 <span className="text-[#FFD700] text-4xl font-black font-mono">
@@ -53,7 +57,6 @@ export default function WatchButton() {
                 : "Aguarde o tempo terminar sem fechar o app para garantir seus ganhos."}
             </p>
 
-            {/* BARRA DE PROGRESSO */}
             {!canClose && (
               <div className="h-2 w-full bg-[#2a2a2a] rounded-full overflow-hidden mb-4">
                 <div 
@@ -63,7 +66,6 @@ export default function WatchButton() {
               </div>
             )}
 
-            {/* BOTÃO DE COLETAR */}
             {canClose && (
               <button 
                 onClick={completeWatch}
