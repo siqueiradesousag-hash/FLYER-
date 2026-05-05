@@ -1,1 +1,2 @@
 Limpeza de cache Gradle
+Forçando Gradle sem Cache
