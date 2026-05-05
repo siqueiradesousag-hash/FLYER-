@@ -1,2 +1,3 @@
 Limpeza de cache Gradle
 Forçando Gradle sem Cache
+Forçando Bouncy Castle v1.80
