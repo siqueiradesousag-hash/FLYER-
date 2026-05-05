@@ -31,7 +31,12 @@
     },
     "noImplicitAny": false,
     "skipLibCheck": true,
-    "strict": false
+    "strict": false,
+    "noEmitOnError": false,
+    "checkJs": false,
+    "ignoreDeprecations": [
+      "5.0"
+    ]
   },
   "references": [
     {
