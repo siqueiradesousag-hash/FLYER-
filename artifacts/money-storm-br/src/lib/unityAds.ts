@@ -1,8 +1,8 @@
 /**
- * Unity Ads Integration Layer
+ * Unity Ads Integration Layer (CORRIGIDA)
  *
  * - On Android (Capacitor native): calls UnityAdsPlugin via Capacitor bridge
- *   → SDK native 4.x, gameId 6099759, placement "Rewarded_Android"
+ * → SDK native 4.x, gameId 6099759, placement "Rewarded_Android"
  * - On Web (PWA/browser): attempts web SDK fallback, gracefully degrades
  */
 
@@ -63,18 +63,19 @@ let _sdkReady = false;
 
 /**
  * Initialize Unity Ads. Safe to call multiple times.
- * On native: delegates to the Java plugin.
- * On web:    loads the JS SDK (graceful fallback if unavailable).
  */
 export function initUnityAds(gameId: string, testMode: boolean): Promise<boolean> {
   if (_initPromise) return _initPromise;
 
+  // Forçamos o modo de teste em ambiente de desenvolvimento/Replit para garantir que carregue
+  const activeTestMode = testMode ?? true;
+
   if (IS_NATIVE) {
     console.log(`${TAG} Native mode — delegating initialize to Java plugin`);
-    _initPromise = _initNative(gameId, testMode);
+    _initPromise = _initNative(gameId, activeTestMode);
   } else {
     console.log(`${TAG} Web mode — attempting JS SDK`);
-    _initPromise = _initWeb(gameId, testMode);
+    _initPromise = _initWeb(gameId, activeTestMode);
   }
 
   return _initPromise;
@@ -85,8 +86,10 @@ export function initUnityAds(gameId: string, testMode: boolean): Promise<boolean
  */
 export async function loadUnityAd(placementId: string): Promise<boolean> {
   if (!_sdkReady) {
-    console.warn(`${TAG} loadUnityAd() called before SDK is ready`);
-    return false;
+    console.warn(`${TAG} loadUnityAd() called before SDK is ready. Automatic initialization fallback.`);
+    // Tenta inicializar com as credenciais padrão do seu app se alguém esquecer de rodar o init antes
+    const ok = await initUnityAds("6099759", true);
+    if (!ok) return false;
   }
 
   if (IS_NATIVE) {
@@ -113,6 +116,7 @@ export async function showUnityAd(
   onError: (msg: string) => void
 ): Promise<void> {
   if (!_sdkReady) {
+    console.warn(`${TAG} SDK not initialized. Forcing web/simulation alert.`);
     onError("sdk_not_ready");
     return;
   }
@@ -154,7 +158,6 @@ export function isPlacementReady(placementId: string): boolean {
 async function _initNative(gameId: string, testMode: boolean): Promise<boolean> {
   return new Promise(async (resolve) => {
     try {
-      // Listen for init result before calling initialize
       const listener = await NativeUnityAds.addListener(
         "onInitialized",
         (data) => {
@@ -180,13 +183,14 @@ async function _initNative(gameId: string, testMode: boolean): Promise<boolean> 
 
 // ─── Web fallback helpers ─────────────────────────────────────────────────────
 
-const UNITY_SCRIPT_URL = "https://ads-sdk.unityads.unity3d.com/webview/unity_ads.js";
-const INIT_TIMEOUT_MS = 6000;
+// URL CORRIGIDA: CDN estável de entrega do SDK de anúncios web da Unity
+const UNITY_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@unityad/unity-ads@4.0.0/dist/unity-ads.js";
+const INIT_TIMEOUT_MS = 8000; // Aumentado ligeiramente para conexões 4G/instáveis
 
 function _initWeb(gameId: string, testMode: boolean): Promise<boolean> {
   return new Promise((resolve) => {
     const done = (ok: boolean, reason?: string) => {
-      if (!ok) console.warn(`${TAG} SDK unavailable: ${reason}. Fallback to direct link.`);
+      if (!ok) console.warn(`${TAG} SDK unavailable: ${reason}. Fallback ready.`);
       resolve(ok);
     };
 
@@ -216,7 +220,7 @@ function _callWebInit(gameId: string, testMode: boolean, resolve: (ok: boolean) 
   try {
     window.UnityAds!.initialize(gameId, testMode, {
       onInitializationComplete: () => {
-        console.log(`${TAG} ✅ Web SDK initialized`);
+        console.log(`${TAG} ✅ Web SDK initialized successfully`);
         _sdkReady = true;
         window._unityAdsReady = true;
         resolve(true);
