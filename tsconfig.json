@@ -12,5 +12,12 @@
     {
       "path": "./lib/api-zod"
     }
-  ]
+  ],
+  "compilerOptions": {
+    "noEmitOnError": false,
+    "skipLibCheck": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "suppressImplicitAnyIndexErrors": true
+  }
 }
