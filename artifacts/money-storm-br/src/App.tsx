@@ -1,9 +1,7 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppConfigProvider, useAppConfig } from "@/contexts/AppConfigContext";
-import { initUnityAds } from "@/lib/unityAds";
 
 // Importações das suas páginas existentes
 import LoginPage from "@/pages/LoginPage";
@@ -16,7 +14,7 @@ import CategoryPage from "@/pages/CategoryPage";
 
 const queryClient = new QueryClient();
 
-// --- TELA DE REGISTRO EMBUTIDA (Para evitar erros de importação) ---
+// --- TELA DE REGISTRO EMBUTIDA ---
 function RegisterPage() {
   const params = new URLSearchParams(window.location.search);
   const ref = params.get("ref") || "Nenhum";
@@ -42,9 +40,9 @@ function MaintenancePage() {
   const { config } = useAppConfig();
   return (
     <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center px-4 text-center">
-      <img src={config.logoUrl} alt="Logo" className="w-20 h-20 rounded-xl mb-4 object-contain" />
-      <h1 className="text-[#FFD700] text-xl font-bold mb-2">{config.appName}</h1>
-      <p className="text-gray-400 text-sm">{config.maintenanceMessage}</p>
+      <img src={config?.logoUrl} alt="Logo" className="w-20 h-20 rounded-xl mb-4 object-contain" />
+      <h1 className="text-[#FFD700] text-xl font-bold mb-2">{config?.appName}</h1>
+      <p className="text-gray-400 text-sm">{config?.maintenanceMessage}</p>
     </div>
   );
 }
@@ -52,13 +50,6 @@ function MaintenancePage() {
 function AppRoutes() {
   const { user, userData, loading } = useAuth();
   const { config, loading: configLoading } = useAppConfig();
-
-  useEffect(() => {
-    if (configLoading) return;
-    const gameId = config.unityGameIdAndroid || "6099759";
-    const testMode = config.unityTestMode ?? false;
-    initUnityAds(gameId, testMode);
-  }, [configLoading]);
 
   if (loading || configLoading) {
     return (
@@ -84,7 +75,7 @@ function AppRoutes() {
                 Conta suspensa.
               </div>
             </Route>
-          ) : config.maintenanceMode && !userData?.isAdmin ? (
+          ) : config?.maintenanceMode && !userData?.isAdmin ? (
             <Route component={MaintenancePage} />
           ) : (
             <>

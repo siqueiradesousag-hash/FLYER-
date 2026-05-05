@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAppConfig } from "@/contexts/AppConfigContext";
 import { Button } from "@/components/ui/button";
@@ -7,22 +7,46 @@ import { Card, CardContent } from "@/components/ui/card";
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
   const { config } = useAppConfig();
+  const [referralCode, setReferralCode] = useState("Nenhum");
 
-  // Captura o código de quem convidou direto do link (?ref=...)
-  const params = new URLSearchParams(window.location.search);
-  const referralCode = params.get("ref") || "Nenhum";
+  // Captura o código de quem convidou de forma segura para Web e APK
+  useEffect(() => {
+    try {
+      // 1. Tenta pegar pela URL padrão do navegador
+      const params = new URLSearchParams(window.location.search);
+      let ref = params.get("ref");
+
+      // 2. Se não achar (comum em roteamento de APKs), tenta ler da URL cheia do wouter/window
+      if (!ref) {
+        const hashParams = new URLSearchParams(window.location.hash.split("?")[1]);
+        ref = hashParams.get("ref");
+      }
+
+      if (ref) {
+        setReferralCode(ref);
+        // Salva localmente para garantir que o cadastro não perca a referência
+        localStorage.setItem("pending_referrer", ref);
+      } else {
+        // Fallback: verifica se já tinha um código salvo antes de abrir essa tela
+        const savedRef = localStorage.getItem("pending_referrer");
+        if (savedRef) setReferralCode(savedRef);
+      }
+    } catch (e) {
+      console.warn("Erro ao ler código de indicação:", e);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-md bg-[#1e1e1e] border-[#2a2a2a] shadow-2xl">
         <CardContent className="pt-8 flex flex-col items-center">
           <img 
-            src={config.logoUrl} 
+            src={config?.logoUrl} 
             alt="Logo" 
             className="w-24 h-24 rounded-2xl mb-6 object-contain shadow-lg border border-[#333]" 
           />
 
-          <h1 className="text-[#FFD700] text-2xl font-bold mb-2">{config.appName}</h1>
+          <h1 className="text-[#FFD700] text-2xl font-bold mb-2">{config?.appName}</h1>
           <p className="text-gray-400 text-center mb-8 px-4">
             Você foi convidado para a nossa comunidade! Finalize seu cadastro para começar a ganhar.
           </p>
