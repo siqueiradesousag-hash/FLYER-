@@ -7,7 +7,8 @@
     "build": "PORT=3000 BASE_PATH=/ VITE_BASE_PATH=/ pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run build",
     "typecheck:libs": "echo \"Typecheck desativado para build rapido\"",
     "typecheck": "echo \"Typecheck desativado para build rapido\"",
-    "cap": "cap"
+    "cap": "cap",
+    "cap:sync": "cap add android || echo \"Plataforma ja adicionada\"; cap sync android"
   },
   "private": true,
   "devDependencies": {
