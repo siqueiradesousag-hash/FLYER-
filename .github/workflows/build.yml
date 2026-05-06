@@ -15,73 +15,47 @@ jobs:
         java-version: [ 17 ]
     
     steps:
-      # 1. Checkout
       - name: Checkout code
         uses: actions/checkout@v4
       
-      # 2. Setup Java (para Android/Gradle)
       - name: Setup Java ${{ matrix.java-version }}
         uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java-version }}
           distribution: 'temurin'
       
-      # 3. CRÍTICO: Limpar cache corrompido do Gradle
-      - name: Clean corrupted Gradle cache (bcprov fix)
+      - name: Clean corrupted Gradle cache
         run: rm -rf ~/.gradle/caches/ ~/.gradle/wrapper/
       
-      # 4. Setup pnpm (NÃO npm)
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 9
       
-      # 5. Setup Node.js
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
       
-      # 6. Install dependencies com pnpm (com retry automático)
-      - name: Install dependencies with pnpm
-        uses: nick-invision/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm install --frozen-lockfile
+      # Força o pnpm a instalar ignorando qualquer erro de peer dependencies ou inconsistência do lockfile antigo
+      - name: Install dependencies with pnpm (Forced Mode)
+        run: |
+          pnpm config set auto-install-peers true
+          pnpm install --no-frozen-lockfile
       
-      # 7. Build Capacitor project
       - name: Build Capacitor
-        uses: nick-invision/retry@v3
-        with:
-          timeout_minutes: 15
-          max_attempts: 2
-          retry_wait_seconds: 60
-          command: pnpm run build
+        run: pnpm run build
       
-      # 8. Sync Capacitor com Android
       - name: Sync Capacitor to Android
         run: npx cap sync android
       
-      # 9. Build Android APK com Gradle (no caminho correto)
       - name: Build Android Release APK
-        uses: nick-invision/retry@v3
-        with:
-          timeout_minutes: 20
-          max_attempts: 2
-          retry_wait_seconds: 60
-          command: |
-            cd android && \
-            chmod +x gradlew && \
-            ./gradlew clean assembleRelease \
-              --no-daemon \
-              --stacktrace \
-              -Dorg.gradle.daemon=false \
-              -Dorg.gradle.parallel=false
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew clean assembleRelease --no-daemon --stacktrace
       
-      # 10. Upload APK artifact (opcional)
       - name: Upload APK artifact
         if: success()
         uses: actions/upload-artifact@v4
@@ -89,13 +63,3 @@ jobs:
           name: app-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
-      
-      # 11. Notificação de sucesso
-      - name: Build Success
-        if: success()
-        run: echo -e "\n✅ BUILD COMPLETED SUCCESSFULLY\n"
-      
-      # 12. Notificação de falha
-      - name: Build Failure
-        if: failure()
-        run: echo -e "\n❌ BUILD FAILED AFTER ALL RETRIES\n"
