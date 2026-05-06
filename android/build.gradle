@@ -9,20 +9,32 @@ buildscript {
     }
 }
 
+// Define as variáveis globais que os plugins do Cordova e Capacitor exigem
+ext {
+    compileSdkVersion = 34
+    targetSdkVersion = 34
+    minSdkVersion = 22
+    androidxActivityVersion = '1.8.0'
+    androidxFragmentVersion = '1.6.2'
+    androidxAppCompatVersion = '1.6.1'
+    androidxCoordinatorLayoutVersion = '1.2.0'
+    androidxCoreVersion = '1.12.0'
+    kotlin_version = '1.9.10'
+}
+
 allprojects {
     repositories {
         google()
         mavenCentral()
     }
     
-    // Força o Gradle a ignorar assinaturas corrompidas de JARs de terceiros como o bcprov
+    // Mantém a nossa regra de ouro que derrotou o erro de cache do bcprov
     configurations.all {
         resolutionStrategy {
             preferProjectModules()
-            // Se houver conflito de assinatura no bcprov, desativa a validação rígida
             eachDependency { DependencyResolveDetails details ->
                 if (details.requested.group == 'org.bouncycastle') {
-                    details.useVersion '1.70' // Força uma versão super estável que não exige Java 18+
+                    details.useVersion '1.70'
                 }
             }
         }
