@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
 
-# Evita disparar builds duplicados ao mesmo tempo (cancela o anterior automaticamente se você enviar outro push)
+# Cancela builds antigos acumulados se você fizer um push novo
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -25,6 +25,17 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+
+      - name: 🧹 AGENTE INTERNO: Limpar todos os diretórios de cache travados
+        run: |
+          echo "Buscando e destruindo pastas antigas de cache..."
+          # Limpa caches globais que o usuário local tem permissão dentro da máquina virtual
+          rm -rf ~/.gradle/caches/
+          rm -rf ~/.gradle/wrapper/
+          rm -rf android/.gradle/
+          rm -rf android/build/
+          rm -rf android/app/build/
+          echo "Pastas limpas com sucesso!"
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
@@ -49,11 +60,11 @@ jobs:
       - name: 🔄 Sync Capacitor to Android
         run: npx cap sync android
 
-      - name: 🧹 Build APK do Zero absoluto (Sem usar nenhum cache do GitHub)
+      - name: 🔨 Compilar APK (Sem usar caches anteriores)
         run: |
           cd android
           chmod +x gradlew
-          # Roda sem daemon e sem salvar nada em cache local
+          # Roda forçando o download limpo sem ler cache local corrompido
           ./gradlew assembleRelease --no-daemon --no-build-cache --refresh-dependencies
 
       - name: 🔍 Locate and Prepare Generated APKs
