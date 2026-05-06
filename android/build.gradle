@@ -19,6 +19,9 @@ subprojects {
 buildscript {
     
     repositories {
+        configurations.all {
+            resolutionStrategy.force 'org.bouncycastle:bcprov-jdk18on:1.80'
+        }
         google()
         mavenCentral()
     }
@@ -34,6 +37,9 @@ buildscript {
 apply from: "variables.gradle"
 
 allprojects {
+    configurations.all {
+        resolutionStrategy.force 'org.bouncycastle:bcprov-jdk18on:1.80'
+    }
     repositories {
         google()
         mavenCentral()
