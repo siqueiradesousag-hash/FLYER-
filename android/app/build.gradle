@@ -1,7 +1,11 @@
 apply plugin: 'com.android.application'
 
+// Importa o arquivo de variáveis de forma segura
+if (project.rootProject.file('variables.gradle').exists()) {
+    apply from: '../variables.gradle'
+}
+
 android {
-    // Valores em fallback caso o rootProject falhe em ler
     compileSdkVersion rootProject.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34
     
     defaultConfig {
@@ -11,9 +15,10 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Configuração correta e limpa para evitar problemas com PNGs no AAPT
         aaptOptions {
-             // Avoid decoding png files that can cause build execution failures
-             importWithExtensionExists "png"
+            noCompress "png"
         }
     }
     
@@ -43,9 +48,9 @@ apply from: 'capacitor.build.gradle'
 
 try {
     def servicesJSON = file('google-services.json')
-    if (servicesJSON.text != null) {
+    if (servicesJSON != null && servicesJSON.exists()) {
         apply plugin: 'com.google.gms.google-services'
     }
 } catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. This is normal.")
+    logger.info("google-services.json nao encontrado.")
 }
