@@ -1,5 +1,21 @@
 
 buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Força a versão funcional para evitar o travamento de download do jar 1.79
+        constraints {
+            classpath('org.bouncycastle:bcprov-jdk18on:1.80') {
+                because 'A versão 1.79 está com problemas de download no repositório'
+            }
+        }
+    }
+}
+
+
+buildscript {
     configurations.all {
         resolutionStrategy {
             force 'org.bouncycastle:bcprov-jdk18on:1.80'
