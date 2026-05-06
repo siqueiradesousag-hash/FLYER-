@@ -1,1 +1,11 @@
 include ':app'
+
+project(':app').projectDir = new File(settingsDir, 'app')
+
+// Aqui está o segredo: diz ao Gradle exatamente onde encontrar os módulos do Capacitor
+include ':capacitor-android'
+project(':capacitor-android').projectDir = new File(settingsDir, '../node_modules/@capacitor/android/capacitor')
+
+// Se houver plugins do Cordova instalados pelo Capacitor
+include ':capacitor-cordova-android-plugins'
+project(':capacitor-cordova-android-plugins').projectDir = new File(settingsDir, 'capacitor-cordova-android-plugins')
