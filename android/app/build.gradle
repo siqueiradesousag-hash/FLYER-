@@ -1,11 +1,13 @@
 apply plugin: 'com.android.application'
 
-// Importa o arquivo de variáveis de forma segura
 if (project.rootProject.file('variables.gradle').exists()) {
     apply from: '../variables.gradle'
 }
 
 android {
+    // RESOLVE O ERRO: Define o namespace exigido pelo Gradle moderno
+    namespace "com.base44.flyer"
+    
     compileSdkVersion rootProject.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34
     
     defaultConfig {
@@ -16,7 +18,6 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         
-        // Configuração correta e limpa para evitar problemas com PNGs no AAPT
         aaptOptions {
             noCompress "png"
         }
