@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Flyer</string>
+    <string name="title_activity_main">Flyer</string>
+    <string name="package_name">com.flyer.app</string>
+    <string name="custom_url_scheme">com.flyer.app</string>
+</resources>
