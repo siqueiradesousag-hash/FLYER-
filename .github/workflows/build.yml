@@ -1,4 +1,4 @@
-name: 🚀 Build APK - LIMPO & DIRETO
+name: 🚀 Build APK - LIMPO & SEGURO
 
 on:
   push:
@@ -12,45 +12,60 @@ jobs:
     name: Build Android APK
     
     steps:
+      # 1. Checkout do código
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Configura o Java 17 no servidor do GitHub (Aqui funciona!)
       - name: ☕ Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
+      # 3. Configura o pnpm v9
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 9
           run-install: false
 
+      # 4. Configura o Node com cache
       - name: 🟢 Setup Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'pnpm'
 
+      # 5. Instalação limpa de dependências
       - name: 📥 Install dependencies
         run: |
           pnpm config set auto-install-peers true
           pnpm config set strict-peer-dependencies false
           pnpm install --no-frozen-lockfile --force
 
+      # 6. Gera os arquivos web do app
       - name: 🏗️ Build Capacitor web artifacts
         run: pnpm run build
 
+      # 7. Sincroniza os arquivos com a pasta do Android
       - name: 🔄 Sync Capacitor to Android
         run: npx cap sync android
 
-      - name: 🔨 Build Android Release APK (Modo Seguro)
+      # 8. Limpa qualquer cache temporário residual antes de compilar
+      - name: 🧹 Clean Gradle before compiling
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew clean
 
+      # 9. Compila o APK usando o Gradle do GitHub (sem daemon para evitar travar)
+      - name: 🔨 Build Android Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      # 10. Varredura para encontrar os APKs gerados
       - name: 🔍 Locate and Prepare Generated APKs
         if: always()
         run: |
@@ -58,6 +73,7 @@ jobs:
           find android/ -name "*.apk" -type f -exec cp {} output_apks/ \;
           ls -la output_apks/
 
+      # 11. Sobe o arquivo para você poder baixar
       - name: 📤 Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
