@@ -1,56 +1,18 @@
-// Força a versão corrigida do Bouncy Castle globalmente para todos os projetos do build
-subprojects {
-    buildscript {
-        configurations.all {
-            resolutionStrategy {
-                force 'org.bouncycastle:bcprov-jdk18on:1.80'
-            }
-        }
-    }
-    configurations.all {
-        resolutionStrategy {
-            force 'org.bouncycastle:bcprov-jdk18on:1.80'
-        }
-    }
-}
-
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
-
 buildscript {
-    
+    ext.kotlin_version = '1.9.10'
     repositories {
-        // Espelhos rápidos para evitar quedas de conexão
-        mavenCentral()
-        maven { url "https://maven-central.storage-download.googleapis.com/repos/central/data/" }
-        maven { url "https://plugins.gradle.org/m2/" }
-        google()
-        configurations.all {
-            resolutionStrategy.force 'org.bouncycastle:bcprov-jdk18on:1.80'
-        }
         google()
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.1'
-        classpath 'com.google.gms:google-services:4.4.0'
-
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
+        classpath 'com.android.tools.build:gradle:8.1.2'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
-apply from: "variables.gradle"
-
 allprojects {
-    configurations.all {
-        resolutionStrategy.force 'org.bouncycastle:bcprov-jdk18on:1.80'
-    }
     repositories {
-        // Espelhos rápidos para evitar quedas de conexão
-        mavenCentral()
-        maven { url "https://maven-central.storage-download.googleapis.com/repos/central/data/" }
-        maven { url "https://plugins.gradle.org/m2/" }
-        google()
         google()
         mavenCentral()
     }
@@ -59,21 +21,3 @@ allprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
-
-allprojects {
-    configurations.all {
-        resolutionStrategy {
-            force 'org.bouncycastle:bcprov-jdk18on:1.80'
-        }
-    }
-}
-
-allprojects {
-    configurations.all {
-        resolutionStrategy {
-            force 'org.bouncycastle:bcprov-jdk18on:1.80'
-        }
-    }
-}
-// Build trigger: Wed May  6 12:49:43 PM UTC 2026
-// Build trigger: Wed May  6 12:51:24 PM UTC 2026
