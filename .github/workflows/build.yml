@@ -44,7 +44,7 @@ jobs:
       - name: 🔄 Sync Capacitor to Android
         run: npx cap sync android
 
-      - name: 🧹 Clean and Build APK (Forçando bypass de verificação)
+      - name: 🧹 Clean and Build APK (Ignorando verificacao de pacotes)
         run: |
           cd android
           chmod +x gradlew
