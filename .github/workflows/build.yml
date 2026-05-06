@@ -15,11 +15,11 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: ☕ Setup Java 11 (Obrigatório para bcprov)
+      - name: ☕ Setup Java 21 (Necessário para bcprov 1.79+)
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '11'
+          distribution: 'oracle'
+          java-version: '21'
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
