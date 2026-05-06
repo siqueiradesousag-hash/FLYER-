@@ -1,5 +1,12 @@
 include ':app'
-include ':capacitor-cordova-android-plugins'
-project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
 
-apply from: 'capacitor.settings.gradle'
+// Configura o gerenciador de repositórios para interceptar e resolver o bcprov de forma limpa
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        // Espelho do Google como rota alternativa de alta velocidade para evitar falha de conexão (Connection Reset)
+        maven { url "https://maven-central.storage-download.googleapis.com/repos/central/data/" }
+    }
+}
