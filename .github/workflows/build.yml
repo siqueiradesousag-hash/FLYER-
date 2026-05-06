@@ -18,205 +18,76 @@ jobs:
     name: Build Android APK
     
     steps:
-      # ================================================================
-      # 1. CHECKOUT CODE
-      # ================================================================
+      # 1. Checkout do código
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      # ================================================================
-      # 2. JAVA SETUP (ESTRITAMENTE 17)
-      # ================================================================
+      # 2. Configuração do Java 17
       - name: ☕ Setup Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-          check-latest: false
       
-      - name: 🔍 Verify Java version
+      # 3. Limpeza profunda de caches
+      - name: 🧹 Clean corrupted Gradle cache
         run: |
-          java -version
-          javac -version
-
-      # ================================================================
-      # 3. LIMPEZA COMPLETA DE CACHES CORROMPIDOS
-      # ================================================================
-      - name: 🧹 Clean corrupted Gradle cache (bcprov FIX)
-        run: |
-          echo "Removendo cache corrompido do Gradle..."
           rm -rf ~/.gradle/caches/
           rm -rf ~/.gradle/wrapper/
-          rm -rf ~/.gradle/notifications/
-          echo "✓ Cache limpo"
+          cd android && rm -rf build/ .gradle/
 
-      - name: 🧹 Clean local gradle in project
-        run: |
-          cd android
-          rm -rf build/ .gradle/
-          cd ..
-          echo "✓ Local gradle limpo"
-
-      # ================================================================
-      # 4. SETUP PNPM (VERSÃO FIXA 9)
-      # ================================================================
+      # 4. Configuração do pnpm v9
       - name: 📦 Setup pnpm v9
         uses: pnpm/action-setup@v2
         with:
           version: 9
           run-install: false
 
-      # ================================================================
-      # 5. SETUP NODE.JS COM CACHE PNPM
-      # ================================================================
+      # 5. Configuração do Node com cache
       - name: 🟢 Setup Node.js 18 + cache pnpm
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'pnpm'
 
-      # ================================================================
-      # 6. INSTALAÇÃO ULTRA-COMPATÍVEL PNPM
-      # ================================================================
-      - name: 📥 Install dependencies (BLINDADO - sem erros peer deps)
-        uses: nick-invision/retry@v3
-        with:
-          timeout_minutes: 15
-          max_attempts: 3
-          retry_wait_seconds: 45
-          command: |
-            echo "Configurando pnpm para ignorar peer deps..."
-            pnpm config set auto-install-peers true
-            pnpm config set strict-peer-dependencies false
-            
-            echo "Instalando dependências..."
-            pnpm install \
-              --no-frozen-lockfile \
-              --strict-peer-dependencies=false \
-              --force
-            
-            echo "✓ Dependências instaladas com sucesso"
-
-      # ================================================================
-      # 7. BUILD CAPACITOR (ARTIFACT WEB)
-      # ================================================================
-      - name: 🏗️ Build Capacitor web artifacts
-        uses: nick-invision/retry@v3
-        with:
-          timeout_minutes: 20
-          max_attempts: 2
-          retry_wait_seconds: 60
-          command: |
-            echo "Buildando Capacitor artifacts..."
-            pnpm run build
-            echo "✓ Capacitor web build completo"
-
-      # ================================================================
-      # 8. SYNC CAPACITOR PARA ANDROID
-      # ================================================================
-      - name: 🔄 Sync Capacitor to Android
-        uses: nick-invision/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 2
-          retry_wait_seconds: 30
-          command: |
-            echo "Sincronizando Capacitor com Android..."
-            npx cap sync android
-            echo "✓ Capacitor sincronizado"
-
-      # ================================================================
-      # 9. COMPILAÇÃO GRADLE BLINDADA COM RETRY
-      # ================================================================
-      - name: 🔨 Build Android Release APK (BLINDADO)
-        uses: nick-invision/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 2
-          retry_wait_seconds: 90
-          command: |
-            echo "Entrando no diretório android..."
-            cd android
-            
-            echo "Dando permissão de execução ao gradlew..."
-            chmod +x gradlew
-            
-            echo "Limpando builds anteriores..."
-            ./gradlew clean --no-daemon --stacktrace
-            
-            echo "Compilando APK Release..."
-            ./gradlew assembleRelease \
-              --no-daemon \
-              --stacktrace \
-              --info \
-              -Dorg.gradle.jvmargs="-Xmx2g" \
-              -Dorg.gradle.parallel=true \
-              -Dorg.gradle.workers.max=4 \
-              -Dorg.gradle.internal.http.socketTimeout=120000 \
-              -Dorg.gradle.internal.http.connectionTimeout=120000 \
-              -Dorg.gradle.internal.repository.max.retries=15 \
-              -Dorg.gradle.internal.repository.retry.interval=3000
-            
-            echo "✓ APK compilado com sucesso"
-
-      # ================================================================
-      # 10. VERIFICAÇÃO DE APK GERADO
-      # ================================================================
-      - name: ✅ Verify APK exists
+      # 6. Instalação ultra-compatível pnpm
+      - name: 📥 Install dependencies
         run: |
-          APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
-          if [ -f "$APK_PATH" ]; then
-            SIZE=$(du -h "$APK_PATH" | cut -f1)
-            echo "✓ APK ENCONTRADO: $SIZE"
-            ls -lah "$APK_PATH"
-          else
-            echo "✗ APK NÃO ENCONTRADO em $APK_PATH"
-            echo "Procurando APKs..."
-            find android/app/build -name "*.apk" -type f 2>/dev/null || echo "Nenhum APK encontrado"
-            exit 1
-          fi
+          pnpm config set auto-install-peers true
+          pnpm config set strict-peer-dependencies false
+          pnpm install --no-frozen-lockfile --strict-peer-dependencies=false --force
 
-      # ================================================================
-      # 11. UPLOAD ARTIFACT (DOWNLOAD GARANTIDO)
-      # ================================================================
+      # 7. Build do Capacitor (Web Assets)
+      - name: 🏗️ Build Capacitor web artifacts
+        run: pnpm run build
+
+      # 8. Sincronização com o Android
+      - name: 🔄 Sync Capacitor to Android
+        run: npx cap sync android
+
+      # 9. Compilação do APK com Gradle (Tenta gerar o Release)
+      - name: 🔨 Build Android Release APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      # 10. PASSO SALVADOR: Procurar e mapear QUALQUER APK que tenha sido gerado
+      - name: 🔍 Locate and Prepare Generated APKs
+        run: |
+          echo "=== Procurando arquivos APK criados pelo Gradle ==="
+          mkdir -p output_apks/
+          find android/ -name "*.apk" -type f -exec cp {} output_apks/ \;
+          echo "=== Arquivos prontos para download ==="
+          ls -la output_apks/
+
+      # 11. Upload dinâmico dos APKs encontrados (Seja Release, Debug ou Unsigned)
       - name: 📤 Upload APK artifact for download
-        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: FLYER-app-release-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: FLYER-app-apks
+          path: output_apks/
           retention-days: 30
           if-no-files-found: error
-
-      # ================================================================
-      # 12. NOTIFICAÇÃO FINAL
-      # ================================================================
-      - name: 🎉 BUILD SUCCESS - APK Ready for Download
-        if: success()
-        run: |
-          echo ""
-          echo "╔════════════════════════════════════════════════╗"
-          echo "║        ✅ BUILD COMPLETO COM SUCESSO ✅        ║"
-          echo "╚════════════════════════════════════════════════╝"
-          echo ""
-          echo "📍 APK disponível para download em:"
-          echo "   GitHub Actions > Artifacts > FLYER-app-release-apk"
-          echo ""
-          echo "Arquivo: app-release.apk"
-          echo "Tamanho: $(du -h android/app/build/outputs/apk/release/app-release.apk | cut -f1)"
-          echo ""
-
-      - name: ❌ BUILD FAILURE - Revisar logs
-        if: failure()
-        run: |
-          echo ""
-          echo "╔════════════════════════════════════════════════╗"
-          echo "║           ❌ BUILD FALHOU ❌                   ║"
-          echo "╚════════════════════════════════════════════════╝"
-          echo ""
-          echo "Revisar logs acima para detalhes do erro."
-          echo "Tente novamente em alguns minutos."
-          exit 1
-
