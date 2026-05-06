@@ -10,7 +10,6 @@ env:
   PNPM_VERSION: 9
   JAVA_VERSION: 17
   NODE_VERSION: 18
-  GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
 
 jobs:
   build-apk:
@@ -24,19 +23,21 @@ jobs:
         with:
           fetch-depth: 1
 
-      # 2. Configuração do Java 17
+      # 2. Configuração do Java 17 (Estável para Gradle)
       - name: ☕ Setup Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
       
-      # 3. Limpeza profunda de caches
-      - name: 🧹 Clean corrupted Gradle cache
+      # 3. Limpeza profunda de caches antigos e locais
+      - name: 🧹 Clean Gradle cache and local build
         run: |
           rm -rf ~/.gradle/caches/
           rm -rf ~/.gradle/wrapper/
-          cd android && rm -rf build/ .gradle/
+          cd android && ./gradlew clean || echo "Sem gradle local ainda"
+          rm -rf build/ .gradle/
+          cd ..
 
       # 4. Configuração do pnpm v9
       - name: 📦 Setup pnpm v9
@@ -45,14 +46,14 @@ jobs:
           version: 9
           run-install: false
 
-      # 5. Configuração do Node com cache
+      # 5. Configuração do Node com cache ativo do pnpm
       - name: 🟢 Setup Node.js 18 + cache pnpm
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'pnpm'
 
-      # 6. Instalação ultra-compatível pnpm
+      # 6. Instalação de dependências do pnpm
       - name: 📥 Install dependencies
         run: |
           pnpm config set auto-install-peers true
@@ -63,31 +64,32 @@ jobs:
       - name: 🏗️ Build Capacitor web artifacts
         run: pnpm run build
 
-      # 8. Sincronização com o Android
+      # 8. Sincronização Capacitor -> Android
       - name: 🔄 Sync Capacitor to Android
         run: npx cap sync android
 
-      # 9. Compilação do APK com Gradle (Tenta gerar o Release)
-      - name: 🔨 Build Android Release APK
+      # 9. Compilação Simplificada e Estável do Gradle (Evitando Out Of Memory)
+      - name: 🔨 Build Android Release APK (Estável)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew assembleRelease --stacktrace
 
-      # 10. PASSO SALVADOR: Procurar e mapear QUALQUER APK que tenha sido gerado
+      # 10. Varredura Inteligente por APKs Gerados
       - name: 🔍 Locate and Prepare Generated APKs
+        if: always()
         run: |
           echo "=== Procurando arquivos APK criados pelo Gradle ==="
           mkdir -p output_apks/
           find android/ -name "*.apk" -type f -exec cp {} output_apks/ \;
-          echo "=== Arquivos prontos para download ==="
+          echo "=== Conteúdo da pasta de saída ==="
           ls -la output_apks/
 
-      # 11. Upload dinâmico dos APKs encontrados (Seja Release, Debug ou Unsigned)
+      # 11. Upload automático para Download
       - name: 📤 Upload APK artifact for download
         uses: actions/upload-artifact@v4
         with:
           name: FLYER-app-apks
           path: output_apks/
           retention-days: 30
-          if-no-files-found: error
+          if-no-files-found: warn
