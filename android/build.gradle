@@ -1,3 +1,19 @@
+// Força a versão corrigida do Bouncy Castle globalmente para todos os projetos do build
+subprojects {
+    buildscript {
+        configurations.all {
+            resolutionStrategy {
+                force 'org.bouncycastle:bcprov-jdk18on:1.80'
+            }
+        }
+    }
+    configurations.all {
+        resolutionStrategy {
+            force 'org.bouncycastle:bcprov-jdk18on:1.80'
+        }
+    }
+}
+
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
