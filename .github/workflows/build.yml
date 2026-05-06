@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
 
+# Evita disparar builds duplicados ao mesmo tempo (cancela o anterior automaticamente se você enviar outro push)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -44,12 +49,24 @@ jobs:
       - name: 🔄 Sync Capacitor to Android
         run: npx cap sync android
 
-      - name: 🧹 DELETAR CACHE CORROMPIDO E COMPILAR (Limpeza Física)
+      - name: 🧹 Build APK do Zero absoluto (Sem usar nenhum cache do GitHub)
         run: |
-          # Remove fisicamente qualquer resquício de cache do gradle que possa estar quebrado
-          rm -rf ~/.gradle/caches/
-          
           cd android
           chmod +x gradlew
-          # Roda o build forçando o download de tudo do zero absoluto
-          ./gradlew clean assembleRelease --no-daemon --refresh-dependencies
+          # Roda sem daemon e sem salvar nada em cache local
+          ./gradlew assembleRelease --no-daemon --no-build-cache --refresh-dependencies
+
+      - name: 🔍 Locate and Prepare Generated APKs
+        if: always()
+        run: |
+          mkdir -p output_apks/
+          find android/ -name "*.apk" -type f -exec cp {} output_apks/ \;
+          ls -la output_apks/
+
+      - name: 📤 Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FLYER-app-apks
+          path: output_apks/
+          retention-days: 30
+          if-no-files-found: warn
