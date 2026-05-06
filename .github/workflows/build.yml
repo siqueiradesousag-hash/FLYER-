@@ -1,4 +1,4 @@
-name: 🚀 Build APK - BLINDADO & GARANTIDO
+name: 🚀 Build APK - LIMPO & DIRETO
 
 on:
   push:
@@ -6,87 +6,59 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-  PNPM_VERSION: 9
-  JAVA_VERSION: 17
-  NODE_VERSION: 18
-
 jobs:
   build-apk:
     runs-on: ubuntu-latest
     name: Build Android APK
     
     steps:
-      # 1. Checkout do código
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
 
-      # 2. Configuração do Java 17 (Estável para Gradle)
-      - name: ☕ Setup Java 17 (Temurin)
+      - name: ☕ Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      
-      # 3. Limpeza profunda de caches antigos e locais
-      - name: 🧹 Clean Gradle cache and local build
-        run: |
-          rm -rf ~/.gradle/caches/
-          rm -rf ~/.gradle/wrapper/
-          cd android && ./gradlew clean || echo "Sem gradle local ainda"
-          rm -rf build/ .gradle/
-          cd ..
 
-      # 4. Configuração do pnpm v9
-      - name: 📦 Setup pnpm v9
+      - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 9
           run-install: false
 
-      # 5. Configuração do Node com cache ativo do pnpm
-      - name: 🟢 Setup Node.js 18 + cache pnpm
+      - name: 🟢 Setup Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'pnpm'
 
-      # 6. Instalação de dependências do pnpm
       - name: 📥 Install dependencies
         run: |
           pnpm config set auto-install-peers true
           pnpm config set strict-peer-dependencies false
-          pnpm install --no-frozen-lockfile --strict-peer-dependencies=false --force
+          pnpm install --no-frozen-lockfile --force
 
-      # 7. Build do Capacitor (Web Assets)
       - name: 🏗️ Build Capacitor web artifacts
         run: pnpm run build
 
-      # 8. Sincronização Capacitor -> Android
       - name: 🔄 Sync Capacitor to Android
         run: npx cap sync android
 
-      # 9. Compilação Simplificada e Estável do Gradle (Evitando Out Of Memory)
-      - name: 🔨 Build Android Release APK (Estável)
+      - name: 🔨 Build Android Release APK (Modo Seguro)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --stacktrace
+          ./gradlew assembleRelease --no-daemon
 
-      # 10. Varredura Inteligente por APKs Gerados
       - name: 🔍 Locate and Prepare Generated APKs
         if: always()
         run: |
-          echo "=== Procurando arquivos APK criados pelo Gradle ==="
           mkdir -p output_apks/
           find android/ -name "*.apk" -type f -exec cp {} output_apks/ \;
-          echo "=== Conteúdo da pasta de saída ==="
           ls -la output_apks/
 
-      # 11. Upload automático para Download
-      - name: 📤 Upload APK artifact for download
+      - name: 📤 Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: FLYER-app-apks
