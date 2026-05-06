@@ -19,6 +19,11 @@ subprojects {
 buildscript {
     
     repositories {
+        // Espelhos rápidos para evitar quedas de conexão
+        mavenCentral()
+        maven { url "https://maven-central.storage-download.googleapis.com/repos/central/data/" }
+        maven { url "https://plugins.gradle.org/m2/" }
+        google()
         configurations.all {
             resolutionStrategy.force 'org.bouncycastle:bcprov-jdk18on:1.80'
         }
@@ -41,6 +46,11 @@ allprojects {
         resolutionStrategy.force 'org.bouncycastle:bcprov-jdk18on:1.80'
     }
     repositories {
+        // Espelhos rápidos para evitar quedas de conexão
+        mavenCentral()
+        maven { url "https://maven-central.storage-download.googleapis.com/repos/central/data/" }
+        maven { url "https://plugins.gradle.org/m2/" }
+        google()
         google()
         mavenCentral()
     }
