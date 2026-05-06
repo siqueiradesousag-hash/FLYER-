@@ -15,11 +15,11 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: ☕ Setup Java 17
+      - name: ☕ Setup Java 11 (Obrigatório para bcprov)
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: 'zulu'
+          java-version: '11'
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
@@ -44,11 +44,11 @@ jobs:
       - name: 🔄 Sync Capacitor to Android
         run: npx cap sync android
 
-      - name: 🧹 Clean and Build APK (Ignorando verificacao de pacotes)
+      - name: 🧹 Clean and Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew clean assembleRelease --no-daemon --no-build-cache -Dorg.gradle.dependency.verification=off
+          ./gradlew clean assembleRelease --no-daemon --no-build-cache
 
       - name: 🔍 Locate and Prepare Generated APKs
         if: always()
