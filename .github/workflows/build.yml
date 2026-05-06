@@ -1,0 +1,31 @@
+name: Build with Retry Strategy
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      # Estratégia 1: Retry nativo com continue-on-error
+      - name: Build with Retry
+        run: |
+          for attempt in 1 2 3; do
+            echo "Tentativa $attempt/3..."
+            if ./gradlew build --no-daemon --parallel; then
+              echo "Build bem-sucedido!"
+              exit 0
+            fi
+            if [ $attempt -lt 3 ]; then
+              echo "Falha na tentativa $attempt. Aguardando antes de tentar novamente..."
+              sleep $((attempt * 10))
+            fi
+          done
+          exit 1
