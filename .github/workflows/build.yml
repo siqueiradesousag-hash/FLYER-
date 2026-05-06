@@ -1,4 +1,4 @@
-name: Build Capacitor App with Retry
+name: Build Capacitor App - Production Ready
 
 on:
   push:
@@ -11,53 +11,77 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        node-version: [ 18 ]
         java-version: [ 17 ]
     
     steps:
+      # 1. Checkout
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Setup Java
+      # 2. Setup Java (para Android/Gradle)
+      - name: Setup Java ${{ matrix.java-version }}
         uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java-version }}
           distribution: 'temurin'
       
-      - name: Clean Gradle cache (fix bcprov issue)
-        run: rm -rf ~/.gradle/caches/
+      # 3. CRÍTICO: Limpar cache corrompido do Gradle
+      - name: Clean corrupted Gradle cache (bcprov fix)
+        run: rm -rf ~/.gradle/caches/ ~/.gradle/wrapper/
       
-      - name: Setup Node.js
+      # 4. Setup pnpm (NÃO npm)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+      
+      # 5. Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
       
-      - name: Install dependencies
+      # 6. Install dependencies com pnpm (com retry automático)
+      - name: Install dependencies with pnpm
         uses: nick-invision/retry@v3
         with:
           timeout_minutes: 10
           max_attempts: 3
           retry_wait_seconds: 30
-          command: npm install
+          command: pnpm install --frozen-lockfile
       
-      - name: Build Capacitor project
+      # 7. Build Capacitor project
+      - name: Build Capacitor
         uses: nick-invision/retry@v3
         with:
           timeout_minutes: 15
           max_attempts: 2
           retry_wait_seconds: 60
-          command: npm run build
+          command: pnpm run build
       
-      - name: Sync Capacitor with Android
+      # 8. Sync Capacitor com Android
+      - name: Sync Capacitor to Android
         run: npx cap sync android
       
-      - name: Build Android APK
+      # 9. Build Android APK com Gradle (no caminho correto)
+      - name: Build Android Release APK
         uses: nick-invision/retry@v3
         with:
           timeout_minutes: 20
           max_attempts: 2
           retry_wait_seconds: 60
-          command: cd android && ./gradlew clean assembleRelease --no-daemon --stacktrace
+          command: |
+            cd android && \
+            chmod +x gradlew && \
+            ./gradlew clean assembleRelease \
+              --no-daemon \
+              --stacktrace \
+              -Dorg.gradle.daemon=false \
+              -Dorg.gradle.parallel=false
       
+      # 10. Upload APK artifact (opcional)
       - name: Upload APK artifact
         if: success()
         uses: actions/upload-artifact@v4
@@ -66,10 +90,12 @@ jobs:
           path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
       
-      - name: Notify success
+      # 11. Notificação de sucesso
+      - name: Build Success
         if: success()
-        run: echo "✓ Build completed successfully!"
+        run: echo -e "\n✅ BUILD COMPLETED SUCCESSFULLY\n"
       
-      - name: Notify failure
+      # 12. Notificação de falha
+      - name: Build Failure
         if: failure()
-        run: echo "✗ Build failed after all retry attempts"
+        run: echo -e "\n❌ BUILD FAILED AFTER ALL RETRIES\n"
