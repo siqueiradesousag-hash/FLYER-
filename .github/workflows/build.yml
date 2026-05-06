@@ -15,11 +15,11 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: ☕ Setup Java 21 (Necessário para bcprov 1.79+)
+      - name: ☕ Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'oracle'
-          java-version: '21'
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
@@ -44,23 +44,12 @@ jobs:
       - name: 🔄 Sync Capacitor to Android
         run: npx cap sync android
 
-      - name: 🧹 Clean and Build APK
+      - name: 🧹 DELETAR CACHE CORROMPIDO E COMPILAR (Limpeza Física)
         run: |
+          # Remove fisicamente qualquer resquício de cache do gradle que possa estar quebrado
+          rm -rf ~/.gradle/caches/
+          
           cd android
           chmod +x gradlew
-          ./gradlew clean assembleRelease --no-daemon --no-build-cache
-
-      - name: 🔍 Locate and Prepare Generated APKs
-        if: always()
-        run: |
-          mkdir -p output_apks/
-          find android/ -name "*.apk" -type f -exec cp {} output_apks/ \;
-          ls -la output_apks/
-
-      - name: 📤 Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: FLYER-app-apks
-          path: output_apks/
-          retention-days: 30
-          if-no-files-found: warn
+          # Roda o build forçando o download de tudo do zero absoluto
+          ./gradlew clean assembleRelease --no-daemon --refresh-dependencies
