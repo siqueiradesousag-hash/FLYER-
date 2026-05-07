@@ -1,3 +1,7 @@
+// ════════════════════════════════════════════════════════════════════════════
+// ANDROID ROOT BUILD.GRADLE - PADRÃO OFICIAL GITHUB ACTIONS + CAPACITOR
+// ════════════════════════════════════════════════════════════════════════════
+
 buildscript {
     repositories {
         google()
@@ -9,6 +13,7 @@ buildscript {
     }
 }
 
+// Definir variáveis globais de SDK
 ext {
     compileSdkVersion = 34
     targetSdkVersion = 34
@@ -27,14 +32,25 @@ allprojects {
         mavenCentral()
     }
     
-    // Regra rígida de rede: força o uso de dependências seguras sem quebrar assinatura
+    // ════════════════════════════════════════════════════════════════════════
+    // REGRA RÍGIDA: Força o BouncyCastle 1.70 em TODA a árvore de dependências
+    // Remove a corrupção de bcprov-jdk18on-1.79.jar do cache do Runner
+    // ════════════════════════════════════════════════════════════════════════
     configurations.all {
         resolutionStrategy {
             preferProjectModules()
+            
+            // Force para BouncyCastle
             eachDependency { DependencyResolveDetails details ->
                 if (details.requested.group == 'org.bouncycastle') {
                     details.useVersion '1.70'
+                    details.because 'Fix bcprov corruption - GitHub Actions CI/CD'
                 }
+            }
+            
+            // Força versão específica de dependências críticas
+            dependencySubstitution {
+                substitute module('org.bouncycastle:bcprov-jdk15on:*') with module('org.bouncycastle:bcprov-jdk15on:1.70')
             }
         }
     }
