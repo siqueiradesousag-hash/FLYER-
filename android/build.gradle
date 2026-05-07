@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════════════════
-// ANDROID ROOT BUILD.GRADLE - PADRÃO OFICIAL GITHUB ACTIONS + CAPACITOR
+// ANDROID ROOT BUILD.GRADLE - GRADLE 8.2.1 COMPATÍVEL
 // ════════════════════════════════════════════════════════════════════════════
 
 buildscript {
@@ -32,25 +32,20 @@ allprojects {
         mavenCentral()
     }
     
-    // ════════════════════════════════════════════════════════════════════════
-    // REGRA RÍGIDA: Força o BouncyCastle 1.70 em TODA a árvore de dependências
-    // Remove a corrupção de bcprov-jdk18on-1.79.jar do cache do Runner
-    // ════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════
+    // REGRA RÍGIDA: Force BouncyCastle 1.70 (Gradle 8.2.1 Syntax)
+    // ═══════════════════════════════════════════════════════════════════════
     configurations.all {
         resolutionStrategy {
             preferProjectModules()
             
-            // Force para BouncyCastle
+            // SINTAXE CORRETA para Gradle 8.2.1: eachDependency
             eachDependency { DependencyResolveDetails details ->
+                // Force ALL BouncyCastle variants to 1.70
                 if (details.requested.group == 'org.bouncycastle') {
                     details.useVersion '1.70'
-                    details.because 'Fix bcprov corruption - GitHub Actions CI/CD'
+                    details.because 'Fix bcprov dependency resolution - Gradle 8.2.1 compatible'
                 }
-            }
-            
-            // Força versão específica de dependências críticas
-            dependencySubstitution {
-                substitute module('org.bouncycastle:bcprov-jdk15on:*') with module('org.bouncycastle:bcprov-jdk15on:1.70')
             }
         }
     }
