@@ -16,66 +16,60 @@ jobs:
     name: Build Android APK
     
     steps:
-      - name: 📥 Checkout
+      - name: 📥 Checkout do Repositório
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
 
-      - name: ☕ Setup Java 17
+      - name: ☕ Configurar Java 17
         id: setup-java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 📦 Setup pnpm
+      - name: 📦 Configurar pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 9
           run-install: false
 
-      - name: 🟢 Setup Node 18
+      - name: 🟢 Configurar Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'pnpm'
 
-      - name: 🧹 Clean Gradle cache
-        run: |
-          rm -rf ~/.gradle/caches/
-          rm -rf ~/.gradle/wrapper/
-          rm -rf android/build/ android/.gradle/
-
-      - name: 📥 Install dependencies
+      - name: 📥 Instalar Dependências do Node
         run: |
           pnpm config set auto-install-peers true
           pnpm config set strict-peer-dependencies false
           pnpm install --no-frozen-lockfile --force
 
-      - name: 🏗️ Build Capacitor web
+      - name: 🏗️ Build dos Artefatos Web
         run: pnpm run build
 
-      - name: 🔄 Sync Capacitor to Android
+      - name: 🔄 Sincronizar com o Capacitor
         run: npx cap sync android
 
-      - name: 🔨 Build APK Release
-        env:
-          JAVA_HOME: ${{ steps.setup-java.outputs.path }}
+      - name: 🔨 Compilar APK em Velocidade Máxima
+        # Passa o caminho do Java direto na propriedade para evitar o erro de 'Java home invalid'
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew clean assembleRelease \
+          ./gradlew assembleRelease \
             --no-daemon \
-            --stacktrace \
+            --no-build-cache \
             -Dorg.gradle.java.home="$JAVA_HOME"
 
-      - name: 📤 Find and upload APK
+      - name: 🔍 Localizar e Preparar APKs Gerados
+        if: always()
+        run: |
+          mkdir -p output_apks/
+          find android/ -name "*.apk" -type f -exec cp {} output_apks/ \;
+          ls -la output_apks/
+
+      - name: 📤 Fazer Upload do APK Finalizado
         uses: actions/upload-artifact@v4
         with:
-          name: FLYER-app-release-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: FLYER-app-apks
+          path: output_apks/
           retention-days: 7
-
-      - name: 🎉 Build Success
-        if: success()
-        run: echo "✅ APK BUILD COMPLETE - Download from Artifacts"
+          if-no-files-found: error
