@@ -1,4 +1,4 @@
-name: 🚀 Build APK - LIMPO & SEGURO
+name: 🚀 Build APK - MODO TURBO
 
 on:
   push:
@@ -48,11 +48,17 @@ jobs:
       - name: 🔄 Sync Capacitor to Android
         run: npx cap sync android
 
-      - name: 🔨 Compilar APK
+      - name: 🔨 Compilar APK (Modo Veloz)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --no-build-cache --refresh-dependencies
+          # Passamos flags de performance: paralelo, sem daemon, sem cache local inútil
+          ./gradlew assembleRelease \
+            --no-daemon \
+            --parallel \
+            --offline \
+            -Pandroid.useAndroidX=true \
+            -Pandroid.enableJetifier=true || ./gradlew assembleRelease --no-daemon --parallel
 
       - name: 🔍 Locate and Prepare Generated APKs
         if: always()
@@ -66,5 +72,5 @@ jobs:
         with:
           name: FLYER-app-apks
           path: output_apks/
-          retention-days: 30
+          retention-days: 7
           if-no-files-found: warn
