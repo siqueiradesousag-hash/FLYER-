@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [ main ]
 
+# Cancela builds antigos automaticamente se você mandar um novo commit
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -16,61 +17,56 @@ jobs:
     name: Build Android APK
     
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout do Repositório
         uses: actions/checkout@v4
 
-      - name: ☕ Setup Java 17
+      - name: ☕ Configurar Java 17 (Padrão Android)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 📦 Setup pnpm
+      - name: 📦 Configurar pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 9
           run-install: false
 
-      - name: 🟢 Setup Node.js 18
+      - name: 🟢 Configurar Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: 📥 Install dependencies
+      - name: 📥 Instalar Dependências do Node
         run: |
           pnpm config set auto-install-peers true
           pnpm config set strict-peer-dependencies false
           pnpm install --no-frozen-lockfile --force
 
-      - name: 🏗️ Build Capacitor web artifacts
+      - name: 🏗️ Build dos Artefatos Web do Capacitor
         run: pnpm run build
 
-      - name: 🔄 Sync Capacitor to Android
+      - name: 🔄 Sincronizar Capacitor com o Android
         run: npx cap sync android
 
-      - name: 🔨 Compilar APK (Modo Veloz)
+      - name: 🔨 Compilar APK em Velocidade Máxima
         run: |
           cd android
           chmod +x gradlew
-          # Passamos flags de performance: paralelo, sem daemon, sem cache local inútil
-          ./gradlew assembleRelease \
-            --no-daemon \
-            --parallel \
-            --offline \
-            -Pandroid.useAndroidX=true \
-            -Pandroid.enableJetifier=true || ./gradlew assembleRelease --no-daemon --parallel
+          # Compila de forma limpa, direta e sem travar processos em background
+          ./gradlew assembleRelease --no-daemon --parallel --no-build-cache
 
-      - name: 🔍 Locate and Prepare Generated APKs
+      - name: 🔍 Localizar e Organizar os APKs Gerados
         if: always()
         run: |
           mkdir -p output_apks/
           find android/ -name "*.apk" -type f -exec cp {} output_apks/ \;
           ls -la output_apks/
 
-      - name: 📤 Upload APK artifact
+      - name: 📤 Fazer Upload do APK Finalizado
         uses: actions/upload-artifact@v4
         with:
           name: FLYER-app-apks
           path: output_apks/
           retention-days: 7
-          if-no-files-found: warn
+          if-no-files-found: error

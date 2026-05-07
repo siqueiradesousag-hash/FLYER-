@@ -9,7 +9,6 @@ buildscript {
     }
 }
 
-// Define as variáveis globais que os plugins do Cordova e Capacitor exigem
 ext {
     compileSdkVersion = 34
     targetSdkVersion = 34
@@ -28,7 +27,7 @@ allprojects {
         mavenCentral()
     }
     
-    // Mantém a nossa regra de ouro que derrotou o erro de cache do bcprov
+    // Regra rígida de rede: força o uso de dependências seguras sem quebrar assinatura
     configurations.all {
         resolutionStrategy {
             preferProjectModules()
