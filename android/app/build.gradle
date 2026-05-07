@@ -1,19 +1,21 @@
 apply plugin: 'com.android.application'
 
+// Carregar variáveis do root
 if (project.rootProject.file('variables.gradle').exists()) {
     apply from: '../variables.gradle'
 }
 
 android {
-    // RESOLVE O ERRO: Define o namespace exigido pelo Gradle moderno
-    namespace "com.base44.flyer"
+    // CRÍTICO: Namespace deve ser único e válido
+    namespace "com.flyer.app"
     
-    compileSdkVersion rootProject.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 34
+    // Usar valores do root project
+    compileSdk rootProject.ext.compileSdkVersion
     
     defaultConfig {
-        applicationId "com.base44.flyer"
-        minSdkVersion rootProject.hasProperty('minSdkVersion') ? rootProject.ext.minSdkVersion : 22
-        targetSdkVersion rootProject.hasProperty('targetSdkVersion') ? rootProject.ext.targetSdkVersion : 34
+        applicationId "com.flyer.app"
+        minSdk rootProject.ext.minSdkVersion
+        targetSdk rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -39,8 +41,8 @@ repositories {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "androidx.appcompat:appcompat:${rootProject.hasProperty('androidxAppCompatVersion') ? rootProject.ext.androidxAppCompatVersion : '1.6.1'}"
-    implementation "androidx.coordinatorlayout:coordinatorlayout:${rootProject.hasProperty('androidxCoordinatorLayoutVersion') ? rootProject.ext.androidxCoordinatorLayoutVersion : '1.2.0'}"
+    implementation "androidx.appcompat:appcompat:${rootProject.ext.androidxAppCompatVersion}"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:${rootProject.ext.androidxCoordinatorLayoutVersion}"
     implementation project(':capacitor-android')
     implementation project(':capacitor-cordova-android-plugins')
 }
@@ -53,5 +55,5 @@ try {
         apply plugin: 'com.google.gms.google-services'
     }
 } catch(Exception e) {
-    logger.info("google-services.json nao encontrado.")
+    logger.info("google-services.json não encontrado")
 }

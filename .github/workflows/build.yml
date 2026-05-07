@@ -1,4 +1,4 @@
-name: 🚀 Build APK - BLINDADO COM JAVA_HOME CORRETO
+name: 🚀 Build APK - Production Ready
 
 on:
   push:
@@ -16,98 +16,66 @@ jobs:
     name: Build Android APK
     
     steps:
-      - name: 📥 Checkout do Repositório
+      - name: 📥 Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: ☕ Configurar Java 17 (Padrão Android)
+      - name: ☕ Setup Java 17
         id: setup-java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 🔍 Debugar JAVA_HOME
-        run: |
-          echo "JAVA_HOME da action: ${{ steps.setup-java.outputs.path }}"
-          echo "JAVA_HOME do ambiente: $JAVA_HOME"
-          java -version
-          javac -version
-
-      - name: 📦 Configurar pnpm
+      - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v2
         with:
           version: 9
           run-install: false
 
-      - name: 🟢 Configurar Node.js 18
+      - name: 🟢 Setup Node 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'pnpm'
 
-      - name: 🧹 Limpar cache corrompido
+      - name: 🧹 Clean Gradle cache
         run: |
           rm -rf ~/.gradle/caches/
           rm -rf ~/.gradle/wrapper/
           rm -rf android/build/ android/.gradle/
 
-      - name: 📥 Instalar Dependências do Node
+      - name: 📥 Install dependencies
         run: |
           pnpm config set auto-install-peers true
           pnpm config set strict-peer-dependencies false
           pnpm install --no-frozen-lockfile --force
 
-      - name: 🏗️ Build dos Artefatos Web do Capacitor
+      - name: 🏗️ Build Capacitor web
         run: pnpm run build
 
-      - name: 🔄 Sincronizar Capacitor com o Android
+      - name: 🔄 Sync Capacitor to Android
         run: npx cap sync android
 
-      - name: 🔨 Compilar APK em Velocidade Máxima
+      - name: 🔨 Build APK Release
         env:
           JAVA_HOME: ${{ steps.setup-java.outputs.path }}
         run: |
-          echo "JAVA_HOME configurado: $JAVA_HOME"
-          echo "Verificando Java..."
-          $JAVA_HOME/bin/java -version
-          
           cd android
           chmod +x gradlew
-          
-          echo "Limpando build anterior..."
-          ./gradlew clean --no-daemon
-          
-          echo "Compilando APK Release..."
-          ./gradlew assembleRelease \
+          ./gradlew clean assembleRelease \
             --no-daemon \
-            --parallel \
-            --no-build-cache \
             --stacktrace \
-            -Dorg.gradle.java.home="$JAVA_HOME" \
-            -Dorg.gradle.jvmargs="-Xmx2g" \
-            -Dorg.gradle.daemon=false
+            -Dorg.gradle.java.home="$JAVA_HOME"
 
-      - name: 🔍 Localizar e Organizar os APKs Gerados
-        if: always()
-        run: |
-          mkdir -p output_apks/
-          echo "Procurando APKs..."
-          find android/ -name "*.apk" -type f -exec ls -lh {} \;
-          find android/ -name "*.apk" -type f -exec cp {} output_apks/ \;
-          
-          echo "APKs encontrados:"
-          ls -lah output_apks/ || echo "Nenhum APK encontrado!"
-
-      - name: 📤 Fazer Upload do APK Finalizado
+      - name: 📤 Find and upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: FLYER-app-apks
-          path: output_apks/
+          name: FLYER-app-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 7
-          if-no-files-found: error
 
-      - name: 🎉 BUILD SUCESSO
+      - name: 🎉 Build Success
         if: success()
-        run: |
-          echo "✅ APK compilado com sucesso!"
-          echo "📍 Acesse Artifacts > FLYER-app-apks para download"
+        run: echo "✅ APK BUILD COMPLETE - Download from Artifacts"

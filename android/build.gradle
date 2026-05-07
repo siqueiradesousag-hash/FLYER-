@@ -1,5 +1,6 @@
 // ════════════════════════════════════════════════════════════════════════════
-// ANDROID ROOT BUILD.GRADLE - GRADLE 8.2.1 COMPATÍVEL
+// ANDROID ROOT BUILD.GRADLE - PRODUCTION READY
+// Gradle 8.2.1 + Capacitor + Android SDK 34
 // ════════════════════════════════════════════════════════════════════════════
 
 buildscript {
@@ -13,16 +14,16 @@ buildscript {
     }
 }
 
-// Definir variáveis globais de SDK
+// SDK Versions (DEFINIR UMA VEZ, USAR EM TODOS)
 ext {
     compileSdkVersion = 34
     targetSdkVersion = 34
     minSdkVersion = 22
-    androidxActivityVersion = '1.8.0'
-    androidxFragmentVersion = '1.6.2'
     androidxAppCompatVersion = '1.6.1'
     androidxCoordinatorLayoutVersion = '1.2.0'
     androidxCoreVersion = '1.12.0'
+    androidxActivityVersion = '1.8.0'
+    androidxFragmentVersion = '1.6.2'
     kotlin_version = '1.9.10'
 }
 
@@ -32,19 +33,15 @@ allprojects {
         mavenCentral()
     }
     
-    // ═══════════════════════════════════════════════════════════════════════
-    // REGRA RÍGIDA: Force BouncyCastle 1.70 (Gradle 8.2.1 Syntax)
-    // ═══════════════════════════════════════════════════════════════════════
+    // BOUNCYCASTLE FIX: Force 1.70 globalmente (remove bcprov-jdk18on-1.79 corrompido)
     configurations.all {
         resolutionStrategy {
             preferProjectModules()
             
-            // SINTAXE CORRETA para Gradle 8.2.1: eachDependency
+            // Remove cache corrompido de bcprov-jdk18on-1.79
             eachDependency { DependencyResolveDetails details ->
-                // Force ALL BouncyCastle variants to 1.70
                 if (details.requested.group == 'org.bouncycastle') {
                     details.useVersion '1.70'
-                    details.because 'Fix bcprov dependency resolution - Gradle 8.2.1 compatible'
                 }
             }
         }

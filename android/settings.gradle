@@ -1,11 +1,8 @@
 include ':app'
-
 project(':app').projectDir = new File(settingsDir, 'app')
 
-// Capacitor Android native module
 include ':capacitor-android'
 project(':capacitor-android').projectDir = new File(settingsDir, '../node_modules/@capacitor/android/capacitor')
 
-// Capacitor Cordova Android plugins
 include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File(settingsDir, 'capacitor-cordova-android-plugins')
